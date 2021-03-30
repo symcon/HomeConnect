@@ -1,0 +1,10 @@
+{
+    "translations": {
+        "de": {
+            "Name": "Name",
+            "Type": "Typ",
+            "Brand": "Marke",
+            "Connected": "Verbunden"
+        }
+    }
+}

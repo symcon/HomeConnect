@@ -1,0 +1,21 @@
+{
+    "elements": [
+        {
+            "type": "Button",
+            "caption": "Register",
+            "onClick": "echo HC_Register($id);"
+        },
+        {
+            "type": "Label",
+            "caption": "Token"
+        }
+    ],
+    "actions": [
+        {
+            "type": "Button",
+            "caption": "Register Server Events",
+            "onClick": "HC_RegisterServerEvents($id);"
+        }
+    ],
+    "status": []
+}

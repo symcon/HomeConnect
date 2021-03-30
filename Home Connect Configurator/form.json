@@ -1,0 +1,41 @@
+{
+    "elements": [],
+    "actions": [
+        {
+            "type": "Configurator",
+            "caption": "Configurator",
+            "delete": true,
+            "columns": [
+                {
+                    "caption": "HaID",
+                    "name": "HaID",
+                    "width": "300px",
+                    "visible": false
+                },
+                {
+                    "caption": "Name",
+                    "name": "Name",
+                    "width": "auto"
+                },
+                {
+                    "caption": "Type",
+                    "name": "Type",
+                    "width": "200px"
+                },
+                {
+                    "caption": "Brand",
+                    "name": "Brand",
+                    "width": "150px"
+            
+                },
+                {
+                    "caption": "Connected",
+                    "name": "Connected",
+                    "width": "100px"
+                }
+            ],
+            "values": []
+            }
+    ],
+    "status": []
+}
