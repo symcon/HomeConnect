@@ -8,14 +8,13 @@ declare(strict_types=1);
     {
         //Simulatoion
         const HOME_CONNECT_BASE = 'https://simulator.home-connect.com/api/';
-        //Real
-        // const HOME_CONNECT_BASE = 'https://api.home-connect.com/api/';
-
-        // private $oauthIdentifer = "home_connect";
         private $oauthIdentifer = 'home_connect_dev';
 
+        //Real
+        // const HOME_CONNECT_BASE = 'https://api.home-connect.com/api/';
+        // private $oauthIdentifer = "home_connect";
+
         private $oauthServer = 'oauth.ipmagic.de';
-        // private $oauthServer = "oauth.symcon.cloud";
 
         public function __construct($InstanceID)
         {
@@ -62,11 +61,9 @@ declare(strict_types=1);
             $data = json_decode($Data, true);
             $this->SendDebug('Forward', $Data, 0);
             if (isset($data['Payload'])) {
-                $this->putData($data['Endpoint'], $data['Payload']);
-                return true;
+                return $this->putData($data['Endpoint'], $data['Payload']);
             }
-            $result = $this->getData($data['Endpoint']);
-            return $result;
+            return $this->getData($data['Endpoint']);
         }
 
         public function ReceiveData($JSONString)
