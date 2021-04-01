@@ -7,12 +7,12 @@ declare(strict_types=1);
     class HomeConnectCloud extends WebOAuthModule
     {
         //Simulatoion
-        const HOME_CONNECT_BASE = 'https://simulator.home-connect.com/api/';
-        private $oauthIdentifer = 'home_connect_dev';
+        // const HOME_CONNECT_BASE = 'https://simulator.home-connect.com/api/';
+        // private $oauthIdentifer = 'home_connect_dev';
 
         //Real
-        // const HOME_CONNECT_BASE = 'https://api.home-connect.com/api/';
-        // private $oauthIdentifer = "home_connect";
+        const HOME_CONNECT_BASE = 'https://api.home-connect.com/api/';
+        private $oauthIdentifer = "home_connect";
 
         private $oauthServer = 'oauth.ipmagic.de';
 
