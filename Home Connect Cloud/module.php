@@ -12,7 +12,7 @@ declare(strict_types=1);
 
         //Real
         const HOME_CONNECT_BASE = 'https://api.home-connect.com/api/';
-        private $oauthIdentifer = "home_connect";
+        private $oauthIdentifer = 'home_connect';
 
         private $oauthServer = 'oauth.ipmagic.de';
 
