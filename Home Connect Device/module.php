@@ -54,7 +54,7 @@ declare(strict_types=1);
             if (IPS_GetKernelRunlevel() == KR_READY) {
                 if ($this->HasActiveParent()) {
                     if ($this->ReadPropertyString('HaID')) {
-                        $this->processData($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/status'));
+                        $this->createStates();
                         $this->setupSettings();
                         $this->createPrograms();
                         //If the device is inactive, we cannot retrieve information about the current selected Program
@@ -98,7 +98,7 @@ declare(strict_types=1);
                         if ($matches) {
                             switch ($matches['type']) {
                                 case 'Status':
-                                    $this->createVariableFromData('status', ['data' => ['status' => [$item]]]);
+                                    $this->createStates('status', ['data' => ['status' => [$item]]]);
                                     $this->SendDebug('Status', 'changes', 0);
                                     break;
 
@@ -293,22 +293,15 @@ declare(strict_types=1);
             }
         }
 
-        private function processData($jsonString)
+        private function createStates($states = '')
         {
-            $data = json_decode($jsonString, true);
-            $this->SendDebug('data', json_encode($data), 0);
-            if (isset($data['error'])) {
-                // $this->SendDebug('Error', $data['error'], 0);
-                return;
+            if (!$states) {
+                $data = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/status'), true);
+            } else {
+                $data = $states;
             }
-            $this->createVariableFromData('status', $data);
-            // $this->createVariableFromData('settings', $data);
-        }
-
-        private function createVariableFromData($type, $data)
-        {
-            if (isset($data['data'][$type])) {
-                foreach ($data['data'][$type] as $state) {
+            if (isset($data['data']['status'])) {
+                foreach ($data['data']['status'] as $state) {
                     $ident = $this->getLastSnippet($state['key']);
                     //Skip remote control states and transfer to attributess
                     if (in_array($state['key'], self::ATTRIBUTES)) {
