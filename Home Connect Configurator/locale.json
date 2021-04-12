@@ -4,7 +4,10 @@
             "Name": "Name",
             "Type": "Typ",
             "Brand": "Marke",
-            "Connected": "Verbunden"
+            "Connected": "Verbunden",
+            "Yes": "Ja",
+            "No": "Nein",
+            "Configurator": "Konfigurator"
         }
     }
 }
