@@ -33,40 +33,6 @@ declare(strict_types=1);
             $this->RegisterAttributeBoolean('LocalControlActive', false);
             $this->RegisterAttributeBoolean('ActiveProgram', false);
 
-            //States
-            if (!IPS_VariableProfileExists('HomeConnect.Common.Status.OperationState')) {
-                IPS_CreateVariableProfile('HomeConnect.Common.Status.OperationState', VARIABLETYPE_STRING);
-                $this->createAssociations('HomeConnect.Common.Status.OperationState', [
-                    ['Value' => 'BSH.Common.EnumType.OperationState.Inactive', 'Name' => 'Inactive'],
-                    ['Value' => 'BSH.Common.EnumType.OperationState.Ready', 'Name' => 'Ready'],
-                    ['Value' => 'BSH.Common.EnumType.OperationState.DelayedStart', 'Name' => 'Delayed Start'],
-                    ['Value' => 'BSH.Common.EnumType.OperationState.Run', 'Name' => 'Run'],
-                    ['Value' => 'BSH.Common.EnumType.OperationState.ActionRequired', 'Name' => 'Action Required'],
-                    ['Value' => 'BSH.Common.EnumType.OperationState.Finished', 'Name' => 'Finished'],
-                    ['Value' => 'BSH.Common.EnumType.OperationState.Error', 'Name' => 'Error'],
-                    ['Value' => 'BSH.Common.EnumType.OperationState.Aborting', 'Name' => 'Aborting'],
-                ]);
-            }
-            if (!IPS_VariableProfileExists('HomeConnect.Common.Status.DoorState')) {
-                IPS_CreateVariableProfile('HomeConnect.Common.Status.DoorState', VARIABLETYPE_STRING);
-                $this->createAssociations('HomeConnect.Common.Status.DoorState', [
-                    ['Value' => 'BSH.Common.EnumType.DoorState.Open', 'Name' => 'Open'],
-                    ['Value' => 'BSH.Common.EnumType.DoorState.Closed', 'Name' => 'Closed'],
-                    ['Value' => 'BSH.Common.EnumType.DoorState.Locked', 'Name' => 'Locked'],
-                ]);
-            }
-
-            //Settings
-            if (!IPS_VariableProfileExists('HomeConnect.Common.Setting.PowerState')) {
-                IPS_CreateVariableProfile('HomeConnect.Common.Setting.PowerState', VARIABLETYPE_STRING);
-                $this->createAssociations('HomeConnect.Common.Setting.PowerState', [
-
-                    // ['Value' => 'BSH.Common.EnumType.PowerState.Off', 'Name' => 'Off'],
-                    ['Value' => 'BSH.Common.EnumType.PowerState.On', 'Name' => 'On'],
-                    ['Value' => 'BSH.Common.EnumType.PowerState.Standby', 'Name' => 'Standby'],
-                ]);
-            }
-
             //Options
             if (!IPS_VariableProfileExists('HomeConnect.Common.Option.ProgramProgress')) {
                 IPS_CreateVariableProfile('HomeConnect.Common.Option.ProgramProgress', VARIABLETYPE_INTEGER);
@@ -91,7 +57,10 @@ declare(strict_types=1);
                         $this->processData($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/status'));
                         $this->setupSettings();
                         $this->createPrograms();
-                        $this->updateOptionValues($this->getSelectedProgram()['data']);
+                        //If the device is inactive, we cannot retrieve information about the current selected Program
+                        if (@IPS_GetObjectIDByIdent('OperationState', $this->InstanceID) && ($this->GetValue('OperationState') != 'BSH.Common.EnumType.OperationState.Inactive')) {
+                            $this->updateOptionValues($this->getSelectedProgram()['data']);
+                        }
                     }
                 }
             }
@@ -115,6 +84,7 @@ declare(strict_types=1);
                     $items = json_decode($cleanData['data'], true)['items'];
                     $this->SendDebug($cleanData['event'], json_encode($items), 0);
                     foreach ($items as $item) {
+                        $this->SendDebug('key', json_encode($item['key']), 0);
                         if (in_array($item['key'], self::EXCLUDE)) {
                             continue;
                         }
@@ -124,14 +94,25 @@ declare(strict_types=1);
                             continue;
                         }
 
-                        if (!@IPS_GetObjectIDByIdent($ident, $this->InstanceID)) {
-                            $this->createVariableByData($item);
+                        preg_match('/.+\.(?P<type>.+)\..+/m', $item['key'], $matches);
+                        if ($matches) {
+                            switch ($matches['type']) {
+                                case 'Status':
+                                    $this->createVariableFromData('status', ['data' => ['status' => [$item]]]);
+                                    $this->SendDebug('Status', 'changes', 0);
+                                    break;
+
+                                default:
+                                    if (!@IPS_GetObjectIDByIdent($ident, $this->InstanceID)) {
+                                        $this->createVariableByData($item);
+                                    }
+                                    if ($ident == 'SelectedProgram') {
+                                        $this->updateOptionValues($item);
+                                    }
+                                    $this->SetValue($ident, $item['value']);
+                                    break;
+                            }
                         }
-                        if ($ident == 'SelectedProgram') {
-                            $this->updateOptionValues($item);
-                        }
-                        $this->SetValue($ident, $item['value']);
-                        $this->SendDebug('Data', $item['key'], 0);
                     }
 
             }
@@ -256,7 +237,6 @@ declare(strict_types=1);
                 return;
             }
             $options = $rawOptions['data']['options'];
-            $availableOptions = json_decode($this->ReadAttributeString('Options'), true);
             $position = 10;
             foreach ($options as $option) {
                 if (in_array($option['key'], self::EXCLUDE)) {
@@ -266,66 +246,11 @@ declare(strict_types=1);
                 $key = $option['key'];
                 preg_match('/.+\.(?P<option>.+)/m', $key, $matches);
                 $ident = $matches['option'];
-                if (!isset($availableOptions[$ident])) {
-                    $availableOptions[$ident] = ['key' => $key];
-                }
+
                 $profileName = 'HomeConnect.' . $this->ReadPropertyString('DeviceType') . '.Option.' . $ident;
-                $constraints = $option['constraints'];
-                switch ($option['type']) {
-                    case 'Int':
-                        $variableType = VARIABLETYPE_INTEGER;
-                        $availableOptions[$ident]['unit'] = $option['unit'];
-                        if (!IPS_VariableProfileExists($profileName)) {
-                            //Create profile
-                            IPS_CreateVariableProfile($profileName, $variableType);
-                        }
-                        IPS_SetVariableProfileText($profileName, '', ' ' . $option['unit']);
-                        IPS_SetVariableProfileValues($profileName, $constraints['min'], $constraints['max'], isset($constraints['stepsize']) ? $constraints['stepsize'] : 1);
-                        break;
-
-                    default:
-                        $variableType = VARIABLETYPE_STRING;
-                        if (!IPS_VariableProfileExists($profileName)) {
-                            //Create profile
-                            IPS_CreateVariableProfile($profileName, $variableType);
-                        }
-                        //Add potential new options
-                        $newAssociations = [];
-                        for ($i = 0; $i < count($constraints['allowedvalues']); $i++) {
-                            $displayName = isset($constraints['displayvalues'][$i]) ? $constraints['displayvalues'][$i] : $this->getLastSnippet($constraints['allowedvalues'][$i]);
-                            $newAssociations[$constraints['allowedvalues'][$i]] = $displayName;
-                        }
-
-                        //Get current options from profile
-                        $oldAssociations = [];
-                        foreach (IPS_GetVariableProfile($profileName)['Associations'] as $association) {
-                            $oldAssociations[$association['Value']] = $association['Name'];
-                        }
-                        //Only refresh the profile if changes occured
-                        $diffold = array_diff_assoc($oldAssociations, $newAssociations);
-                        $diffnew = array_diff_assoc($newAssociations, $oldAssociations);
-                        if ($diffold || $diffnew) {
-                            //Clear profile if it exists
-                            foreach (IPS_GetVariableProfile($profileName)['Associations'] as $association) {
-                                IPS_SetVariableProfileAssociation($profileName, $association['Value'], '', '', -1);
-                            }
-                            foreach ($newAssociations as $value => $name) {
-                                IPS_SetVariableProfileAssociation($profileName, $value, $name, '', -1);
-                            }
-                        }
-                        break;
-                }
-
-                //Create variable if not exists
-                if (!@IPS_GetObjectIDByIdent($ident, $this->InstanceID)) {
-                    $displayName = isset($option['name']) ? $option['name'] : $ident;
-                    $this->MaintainVariable($ident, $displayName, $variableType, $profileName, $position++, true);
-                    $this->EnableAction($ident);
-                }
+                $this->createVariableFromConstraints($profileName, $option, 'Options');
             }
 
-            $this->SendDebug('AvailableOptions', json_encode($availableOptions), 0);
-            $this->WriteAttributeString('Options', json_encode($availableOptions));
             if (!IPS_VariableProfileExists('HomeConnect.Control')) {
                 IPS_CreateVariableProfile('HomeConnect.Control', VARIABLETYPE_STRING);
                 IPS_SetVariableProfileAssociation('HomeConnect.Control', 'Start', $this->Translate('Start'), '', -1);
@@ -370,8 +295,8 @@ declare(strict_types=1);
 
         private function processData($jsonString)
         {
-            $this->SendDebug('data', $jsonString, 0);
             $data = json_decode($jsonString, true);
+            $this->SendDebug('data', json_encode($data), 0);
             if (isset($data['error'])) {
                 // $this->SendDebug('Error', $data['error'], 0);
                 return;
@@ -394,12 +319,41 @@ declare(strict_types=1);
                     $this->SendDebug('Variable', $state['key'], 0);
 
                     $profileName = str_replace('BSH', 'HomeConnect', $state['key']);
-                    $profile = IPS_VariableProfileExists($profileName) ? $profileName : '';
-                    $displayName = isset($state['name']) ? $state['name'] : $this->Translate($this->splitCamelCase($ident));
-                    $this->MaintainVariable($ident, $displayName, $this->getVariableType($state['value']), $profile, 0, true);
+                    $variableType = $this->getVariableType($value);
+                    if (!IPS_VariableProfileExists($profileName)) {
+                        IPS_CreateVariableProfile($profileName, $variableType);
+                    }
+                    switch ($variableType) {
+                        case VARIABLETYPE_STRING:
+                            $this->addAssociation($profileName, $value, isset($state['displayvalue']) ? $state['displayvalue'] : $this->splitCamelCase($this->getLastSnippet($state['value'])));
+                            break;
+
+                        case VARIABLETYPE_INTEGER:
+                            if (isset($state['unit'])) {
+                                IPS_SetVariableProfileText($profileName, '', ' ' . $state['unit']);
+                            }
+                            break;
+
+                        default:
+                            break;
+
+                    }
+                    $variableDisplayName = isset($state['name']) ? $state['name'] : $this->splitCamelCase($ident);
+                    $this->MaintainVariable($ident, $variableDisplayName, $variableType, $profileName, 0, true);
                     $this->SetValue($ident, $value);
                 }
             }
+        }
+
+        private function addAssociation($profileName, $value, $name)
+        {
+            foreach (IPS_GetVariableProfile($profileName)['Associations'] as $association) {
+                if ($association['Value'] == $value) {
+                    return;
+                }
+            }
+            IPS_SetVariableProfileAssociation($profileName, $value, $name, '', -1);
+            $this->SendDebug('Added Association', $name, 0);
         }
 
         private function getLastSnippet($string)
@@ -421,7 +375,7 @@ declare(strict_types=1);
             if (isset($errorDetector['error'])) {
                 $this->SendDebug('ErrorPayload', $payload, 0);
                 $this->SendDebug('ErrorEndpoint', $endpoint, 0);
-                echo $errorDetector['error']['description'];
+                // echo $errorDetector['error']['description'];
             }
             $this->SendDebug('requestetData', $response, 0);
             return $response;
@@ -436,10 +390,10 @@ declare(strict_types=1);
 
         private function setupSettings()
         {
-            $data = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/settings'), true);
-            if (isset($data['data']['settings'])) {
+            $allSettings = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/settings'), true);
+            if (isset($allSettings['data']['settings'])) {
                 $availableSettings = json_decode($this->ReadAttributeString('Settings'), true);
-                foreach ($data['data']['settings'] as $setting) {
+                foreach ($allSettings['data']['settings'] as $setting) {
                     $value = $setting['value'];
                     $ident = $this->getLastSnippet($setting['key']);
 
@@ -447,12 +401,12 @@ declare(strict_types=1);
                     if (!isset($availableSettings[$ident])) {
                         $availableSettings[$ident] = ['key' => $setting['key']];
                     }
-
+                    $this->SendDebug('Setting', json_encode($setting), 0);
                     //Create variable accordingly
                     $profileName = str_replace('BSH', 'HomeConnect', $setting['key']);
-                    $profile = IPS_VariableProfileExists($profileName) ? $profileName : '';
-                    $this->MaintainVariable($ident, $this->splitCamelCase($ident), $this->getVariableType($setting['value']), $profile, 0, true);
-                    $this->EnableAction($ident);
+                    $variableType = $this->getVariableType($value);
+                    $settingDetails = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/settings/' . $setting['key']), true);
+                    $this->createVariableFromConstraints($profileName, $settingDetails['data'], 'Settings');
                     $this->SetValue($ident, $value);
                 }
 
@@ -489,6 +443,71 @@ declare(strict_types=1);
         private function splitCamelCase($string)
         {
             preg_match_all('/(?:^|[A-Z])[a-z]+/', $string, $matches);
-            return $this->Translate(implode(' ', $matches[0]));
+            return implode(' ', $matches[0]);
+        }
+
+        private function createVariableFromConstraints($profileName, $data, $attribute)
+        {
+            $available = json_decode($this->ReadAttributeString($attribute), true);
+            $ident = $this->getLastSnippet($data['key']);
+
+            //Add setting to available settings
+            if (!isset($available[$ident])) {
+                $available[$ident] = ['key' => $data['key']];
+            }
+
+            $constraints = $data['constraints'];
+            switch ($data['type']) {
+                    case 'Int':
+                        $variableType = VARIABLETYPE_INTEGER;
+                        $available[$ident]['unit'] = $data['unit'];
+                        if (!IPS_VariableProfileExists($profileName)) {
+                            //Create profile
+                            IPS_CreateVariableProfile($profileName, $variableType);
+                        }
+                        IPS_SetVariableProfileText($profileName, '', ' ' . $data['unit']);
+                        IPS_SetVariableProfileValues($profileName, $constraints['min'], $constraints['max'], isset($constraints['stepsize']) ? $constraints['stepsize'] : 1);
+                        break;
+
+                    default:
+                        $variableType = VARIABLETYPE_STRING;
+                        if (!IPS_VariableProfileExists($profileName)) {
+                            //Create profile
+                            IPS_CreateVariableProfile($profileName, $variableType);
+                        }
+                        //Add potential new options
+                        $newAssociations = [];
+                        for ($i = 0; $i < count($constraints['allowedvalues']); $i++) {
+                            $displayName = isset($constraints['displayvalues'][$i]) ? $constraints['displayvalues'][$i] : $this->getLastSnippet($constraints['allowedvalues'][$i]);
+                            $newAssociations[$constraints['allowedvalues'][$i]] = $displayName;
+                        }
+
+                        //Get current options from profile
+                        $oldAssociations = [];
+                        foreach (IPS_GetVariableProfile($profileName)['Associations'] as $association) {
+                            $oldAssociations[$association['Value']] = $association['Name'];
+                        }
+                        //Only refresh the profile if changes occured
+                        $diffold = array_diff_assoc($oldAssociations, $newAssociations);
+                        $diffnew = array_diff_assoc($newAssociations, $oldAssociations);
+                        if ($diffold || $diffnew) {
+                            //Clear profile if it exists
+                            foreach (IPS_GetVariableProfile($profileName)['Associations'] as $association) {
+                                IPS_SetVariableProfileAssociation($profileName, $association['Value'], '', '', -1);
+                            }
+                            foreach ($newAssociations as $value => $name) {
+                                IPS_SetVariableProfileAssociation($profileName, $value, $name, '', -1);
+                            }
+                        }
+                        break;
+                }
+
+            $this->WriteAttributeString($attribute, json_encode($available));
+            //Create variable with created profile
+            if (!@IPS_GetObjectIDByIdent($ident, $this->InstanceID)) {
+                $displayName = isset($option['name']) ? $option['name'] : $ident;
+                $this->MaintainVariable($ident, $displayName, $variableType, $profileName, 0, true);
+                $this->EnableAction($ident);
+            }
         }
     }

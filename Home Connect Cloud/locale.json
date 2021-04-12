@@ -1,7 +1,8 @@
 {
     "translations": {
         "de": {
-            "Register": "Registrieren"
+            "Register": "Registrieren",
+            "Language": "Sprache"
         }
     }
 }

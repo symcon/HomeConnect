@@ -6,8 +6,16 @@
             "onClick": "echo HC_Register($id);"
         },
         {
-            "type": "Label",
-            "caption": "Token"
+            "type": "Select",
+            "caption": "Language",
+            "name": "Language",
+            "options": [
+                { "caption": "de-DE", "value": "de-DE"},
+                { "caption": "en-GB", "value": "en-BG"},
+                { "caption": "en-US", "value": "en-US"},
+                { "caption": "fr-FR", "value": "fr-FR"}
+            ],
+            "value": "de-DE"
         }
     ],
     "actions": [

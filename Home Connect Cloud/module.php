@@ -7,12 +7,12 @@ declare(strict_types=1);
     class HomeConnectCloud extends WebOAuthModule
     {
         //Simulatoion
-        // const HOME_CONNECT_BASE = 'https://simulator.home-connect.com/api/';
-        // private $oauthIdentifer = 'home_connect_dev';
+        const HOME_CONNECT_BASE = 'https://simulator.home-connect.com/api/';
+        private $oauthIdentifer = 'home_connect_dev';
 
         //Real
-        const HOME_CONNECT_BASE = 'https://api.home-connect.com/api/';
-        private $oauthIdentifer = 'home_connect';
+        // const HOME_CONNECT_BASE = 'https://api.home-connect.com/api/';
+        // private $oauthIdentifer = 'home_connect';
 
         private $oauthServer = 'oauth.ipmagic.de';
 
@@ -31,19 +31,14 @@ declare(strict_types=1);
             $this->RequireParent('{2FADB4B7-FDAB-3C64-3E2C-068A4809849A}');
 
             $this->RegisterMessage(IPS_GetInstance($this->InstanceID)['ConnectionID'], IM_CHANGESTATUS);
+
+            $this->RegisterPropertyString('Language', 'de-DE');
         }
 
         public function ApplyChanges()
         {
             //Never delete this line!
             parent::ApplyChanges();
-        }
-
-        public function GetConfigurationForm()
-        {
-            $data = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
-            $data['elements'][1]['caption'] = $this->ReadAttributeString('Token') ? 'Token: ' . substr($this->ReadAttributeString('Token'), 0, 16) . '...' : 'Token: Not registered yet';
-            return json_encode($data);
         }
 
         /**
@@ -240,7 +235,7 @@ declare(strict_types=1);
                 'http'=> [
                     'method'        => 'GET',
                     'header'        => 'Authorization: Bearer ' . $this->FetchAccessToken() . "\r\n" .
-                                       'Accept-Language: de-DE' . "\r\n",
+                                       'Accept-Language: ' . $this->ReadPropertyString('Language') . "\r\n",
                     'ignore_errors' => true
                 ]
             ];
@@ -267,7 +262,7 @@ declare(strict_types=1);
                     'header'        => 'Authorization: Bearer ' . $this->FetchAccessToken() . "\r\n" .
                                        'Content-Length: ' . strlen($content) . "\r\n" .
                                        'Content-Type: application/vnd.bsh.sdk.v1+json' . "\r\n",
-                    'Accept-Language: de-DE' . "\r\n",
+                    'Accept-Language: ' . $this->ReadPropertyString('Language') . "\r\n",
                     'content'       => $content,
                     'ignore_errors' => true
                 ]

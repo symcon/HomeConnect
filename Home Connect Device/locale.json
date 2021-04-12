@@ -3,27 +3,7 @@
         "de": {
             "Control": "Steuern",
             "Program": "Programm",
-            "Inactive": "Inaktiv",
-            "Ready": "Bereit",
-            "Delayed Start" :"Verzögerter Start",
-            "Run": "Läuft",
-            "Action Required": "Aktion erforderlich",
-            "Finished": "Fertig",
-            "Error": "Fehler",
-            "Aborting": "Abbrechen",
-            "Door State": "Türstatus",
-            "Operation State": "Betriebszustand",
-            "Open": "Offen",
-            "Closed": "Geschlossen",
-            "Locked": "Verriegelt",
-            "Power State": "Energiezustand",
-            "Off": "Aus",
-            "On": "An",
-            "Standby": "Standby",
-            "Start": "Starten",
-            "Pause": "Pausieren",
-            "Resume": "Fortsetzen",
-            "Stop": "Stoppen"
+            "DeviceType": "Gerätetyp"
         }
     }
 }
