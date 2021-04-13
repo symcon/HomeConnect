@@ -4,7 +4,9 @@
             "Control": "Steuern",
             "Program": "Programm",
             "DeviceType": "Gerätetyp",
-            "Current Cavity Temperature": "Aktuelle Temperatur"
+            "Current Cavity Temperature": "Aktuelle Temperatur",
+            "Remote control not active": "Fernsteuerung nicht aktiviert",
+            "Remote start not allowed": "Fernstart nicht erlaubt"
         }
     }
 }
