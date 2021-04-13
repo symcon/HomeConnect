@@ -3,7 +3,8 @@
         "de": {
             "Control": "Steuern",
             "Program": "Programm",
-            "DeviceType": "Gerätetyp"
+            "DeviceType": "Gerätetyp",
+            "Current Cavity Temperature": "Aktuelle Temperatur"
         }
     }
 }

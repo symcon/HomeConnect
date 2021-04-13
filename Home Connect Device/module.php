@@ -98,7 +98,7 @@ declare(strict_types=1);
                         if ($matches) {
                             switch ($matches['type']) {
                                 case 'Status':
-                                    $this->createStates('status', ['data' => ['status' => [$item]]]);
+                                    $this->createStates(['data' => ['status' => [$item]]]);
                                     $this->SendDebug('Status', 'changes', 0);
                                     break;
 
@@ -159,6 +159,7 @@ declare(strict_types=1);
 
                 default:
                     $availableOptions = json_decode($this->ReadAttributeString('Options'), true);
+                    $this->SendDebug('Settings', json_encode($availableOptions), 0);
                     if (isset($availableOptions[$Ident])) {
                         $payload = [
                             'data' => [
@@ -191,11 +192,12 @@ declare(strict_types=1);
         private function createPrograms()
         {
             $rawPrograms = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/available'), true);
-            $this->SendDebug('Programms', json_encode($rawPrograms), 0);
+            $this->SendDebug('RawPrograms', json_encode($rawPrograms), 0);
             if (!isset($rawPrograms['data']['programs'])) {
                 return;
             }
             $programs = $rawPrograms['data']['programs'];
+            $this->SendDebug('Programs', json_encode($programs), 0);
             $profileName = 'HomeConnect.' . $this->ReadPropertyString('DeviceType') . '.Programs';
             if (!IPS_VariableProfileExists($profileName)) {
                 IPS_CreateVariableProfile($profileName, VARIABLETYPE_STRING);
@@ -231,12 +233,12 @@ declare(strict_types=1);
 
         private function updateOptionVariables($program)
         {
-            $rawOptions = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/available/' . $program), true);
+            $rawOptions = $this->getProgram($program);
             $this->SendDebug('RawOptions', json_encode($rawOptions), 0);
-            if (!isset($rawOptions['data']['options'])) {
+            if (!isset($rawOptions['options'])) {
                 return;
             }
-            $options = $rawOptions['data']['options'];
+            $options = $rawOptions['options'];
             $position = 10;
             foreach ($options as $option) {
                 if (in_array($option['key'], self::EXCLUDE)) {
@@ -300,6 +302,7 @@ declare(strict_types=1);
             } else {
                 $data = $states;
             }
+            $this->SendDebug('data', json_encode($data), 0);
             if (isset($data['data']['status'])) {
                 foreach ($data['data']['status'] as $state) {
                     $ident = $this->getLastSnippet($state['key']);
@@ -334,6 +337,7 @@ declare(strict_types=1);
                     $variableDisplayName = isset($state['name']) ? $state['name'] : $this->splitCamelCase($ident);
                     $this->MaintainVariable($ident, $variableDisplayName, $variableType, $profileName, 0, true);
                     $this->SetValue($ident, $value);
+                    $this->SendDebug($ident, $value, 0);
                 }
             }
         }
@@ -368,7 +372,7 @@ declare(strict_types=1);
             if (isset($errorDetector['error'])) {
                 $this->SendDebug('ErrorPayload', $payload, 0);
                 $this->SendDebug('ErrorEndpoint', $endpoint, 0);
-                // echo $errorDetector['error']['description'];
+                echo $errorDetector['error']['description'];
             }
             $this->SendDebug('requestetData', $response, 0);
             return $response;
@@ -436,7 +440,7 @@ declare(strict_types=1);
         private function splitCamelCase($string)
         {
             preg_match_all('/(?:^|[A-Z])[a-z]+/', $string, $matches);
-            return implode(' ', $matches[0]);
+            return $this->Translate(implode(' ', $matches[0]));
         }
 
         private function createVariableFromConstraints($profileName, $data, $attribute)
@@ -498,7 +502,7 @@ declare(strict_types=1);
             $this->WriteAttributeString($attribute, json_encode($available));
             //Create variable with created profile
             if (!@IPS_GetObjectIDByIdent($ident, $this->InstanceID)) {
-                $displayName = isset($option['name']) ? $option['name'] : $ident;
+                $displayName = isset($data['name']) ? $data['name'] : $ident;
                 $this->MaintainVariable($ident, $displayName, $variableType, $profileName, 0, true);
                 $this->EnableAction($ident);
             }
