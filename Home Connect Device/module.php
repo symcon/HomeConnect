@@ -247,7 +247,7 @@ declare(strict_types=1);
                     }
                     $this->SendDebug('Setting', json_encode($setting), 0);
                     //Create variable accordingly
-                    $profileName = str_replace('BSH', 'HomeConnect', $setting['key']);
+                    $profileName = str_replace('BSH', 'HomeConnect.' . $this->ReadPropertyString('HaID'), $setting['key']);
                     $variableType = $this->getVariableType($value);
                     $settingDetails = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/settings/' . $setting['key']), true);
                     $this->createVariableFromConstraints($profileName, $settingDetails['data'], 'Settings', $position);
