@@ -14,6 +14,11 @@ declare(strict_types=1);
             //StartInRelative is not selectable
             'BSH.Common.Option.StartInRelative',
         ];
+
+        const DEFAULTS  = [
+            'CoffeeMaker' => false,
+            'Oven' => true,
+        ];
         public function Create()
         {
             //Never delete this line!
@@ -26,6 +31,7 @@ declare(strict_types=1);
 
             $this->RegisterAttributeString('Options', '[]');
             $this->RegisterAttributeString('Settings', '[]');
+            $this->RegisterAttributeString('Programs', '[]');
 
             //States
             $this->RegisterAttributeBoolean('RemoteControlActive', false);
@@ -128,18 +134,26 @@ declare(strict_types=1);
         {
             switch ($Ident) {
                 case 'SelectedProgram':
-                    if (!$this->ReadAttributeBoolean('RemoteControlActive')) {
-                        echo $this->Translate('Remote control not active');
+                    // if (!$this->ReadAttributeBoolean('RemoteControlActive')) {
+                    //     echo $this->Translate('Remote control not active');
+                    //     return;
+                    // }
+                    if (!$this->ReadAttributeBoolean('RemoteControlStartAllowed')) {
+                        echo $this->Translate('Remote start not allowed');
                         return;
                     }
+
+                    $this->updateOptionValues($this->getProgram($Value));
                     $payload = [
                         'data' => [
                             'key'     => $Value,
-                            'options' => []
+                            'options' => $this->createOptionPayload()
                         ]
                     ];
-                    $this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected', json_encode($payload));
-                    $this->updateOptionValues($this->getSelectedProgram()['data']);
+                    $this->SendDebug('Payload', json_encode($payload), 0);
+                    // $this->updateOptionValues($this->getSelectedProgram()['data']);
+                    $this->SendDebug('LocalControl', $this->ReadAttributeBoolean('LocalControlActive'), 0);
+                    // $this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected', json_encode($payload));
                     break;
 
                 case 'Control':
@@ -171,14 +185,21 @@ declare(strict_types=1);
                         }
                         $payload = [
                             'data' => [
-                                'key'   => $availableOptions[$Ident]['key'],
-                                'value' => $Value
+                                'key'     => $Value,
+                                'options' => $this->createOptionPayload()
                             ]
                         ];
-                        if (isset($availableOptions[$Ident]['unit'])) {
-                            $payload['data']['unit'] = $availableOptions[$Ident]['unit'];
-                        }
-                        $this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected/options/' . $availableOptions[$Ident]['key'], json_encode($payload));
+                        $this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected', json_encode($payload));
+                        // $payload = [
+                        //     'data' => [
+                        //         'key'   => $availableOptions[$Ident]['key'],
+                        //         'value' => $Value
+                        //     ]
+                        // ];
+                        // if (isset($availableOptions[$Ident]['unit'])) {
+                        //     $payload['data']['unit'] = $availableOptions[$Ident]['unit'];
+                        // }
+                        // $this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected/options/' . $availableOptions[$Ident]['key'], json_encode($payload));
                     }
 
                     $availableSettings = json_decode($this->ReadAttributeString('Settings'), true);
@@ -228,14 +249,18 @@ declare(strict_types=1);
         private function createOptionPayload()
         {
             $availableOptions = json_decode($this->ReadAttributeString('Options'), true);
-            $this->SendDebug('options', json_encode($availableOptions), 0);
             $optionsPayload = [];
             foreach ($availableOptions as $ident => $option) {
-                $optionsPayload[] = [
+                $newOption = [
                     'key'   => $option['key'],
                     'value' => $this->GetValue($ident)
                 ];
+                if (isset($option['unit'])) {
+                    $newOption['unit'] = $option['unit'];
+                }
+                $optionsPayload[] = $newOption;
             }
+            $this->SendDebug('OptionPayload', json_encode($optionsPayload), 0);
             return $optionsPayload;
         }
 
@@ -258,10 +283,26 @@ declare(strict_types=1);
                 $ident = $matches['option'];
 
                 $profileName = 'HomeConnect.' . $this->ReadPropertyString('DeviceType') . '.Option.' . $ident;
-                $this->createVariableFromConstraints($profileName, $option, 'Options', $position);
-                $position++;
+                $this->createVariableFromConstraints($profileName, $option, 'Options', $position++);
             }
-
+            $savedOptions = json_decode($this->ReadAttributeString('Options'), true);
+            $this->SendDebug('OptionsAttribute', json_encode($savedOptions), 0);
+            $this->diffOptions($savedOptions, $options);
+            // foreach($savedOptions as $ident => $savedOption) {
+            //     foreach($options as $option) {
+            //         if ($option['key'] == $savedOption['key']) {
+            //             continue;
+            //         } 
+            //     }
+            // }
+            // $newAttribute = array_diff(json_decode($this->ReadAttributeString('Options'), true), $savedOptions);
+            // $this->SendDebug('Diff', json_encode($newAttribute), 0);
+            // $this->WriteAttributeString(json_encode($newAttribute));
+            // foreach($savedOptions as $ident => $savedOption) {
+            //     if (@IPS_GetObjectIDByIdent($ident, $this->InstanceID)) {
+            //         IPS_DeleteVariable($this->GetIDForIdent($ident));
+            //     }
+            // }
             if (!IPS_VariableProfileExists('HomeConnect.Control')) {
                 IPS_CreateVariableProfile('HomeConnect.Control', VARIABLETYPE_STRING);
                 IPS_SetVariableProfileAssociation('HomeConnect.Control', 'Start', $this->Translate('Start'), '', -1);
@@ -270,6 +311,21 @@ declare(strict_types=1);
                 $this->MaintainVariable('Control', $this->Translate('Control'), VARIABLETYPE_STRING, 'HomeConnect.Control', $position, true);
                 $this->EnableAction('Control');
             }
+        }
+
+        private function diffOptions($attribute, $options) {
+            foreach($attribute as $att) {
+                $this->SendDebug($att['key'], $this->inArray($att['key'], $options), 0);
+            }
+        }
+
+        private function inArray($key, $options) {
+            foreach($options as $option) {
+                if ($option['key'] == 'key') {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private function getSelectedProgram()
@@ -295,11 +351,19 @@ declare(strict_types=1);
         {
             $this->SetValue('SelectedProgram', $program['key']);
             $this->updateOptionVariables($program['key']);
-            foreach ($program['options'] as $option) {
-                $ident = $this->getLastSnippet($option['key']);
-                if (@IPS_GetObjectIDByIdent($ident, $this->InstanceID)) {
-                    $this->SendDebug('Value', $option['value'], 0);
-                    $this->SetValue($ident, $option['value']);
+            if (self::DEFAULTS[$this->ReadPropertyString('DeviceType')]) {
+                foreach ($program['options'] as $option) {
+                    $ident = $this->getLastSnippet($option['key']);
+                    if (@IPS_GetObjectIDByIdent($ident, $this->InstanceID)) {
+                        $this->SetValue($ident, isset($option['constraints']['default']) ? $option['constraints']['default'] : $options['constraints']['min']);
+                    }
+                }
+            } else {
+                foreach ($program['options'] as $option) {
+                    $ident = $this->getLastSnippet($option['key']);
+                    if (@IPS_GetObjectIDByIdent($ident, $this->InstanceID && isset($option['value']))) {
+                        $this->SetValue($ident, $option['value']);
+                    }
                 }
             }
         }
@@ -333,6 +397,7 @@ declare(strict_types=1);
                             $this->addAssociation($profileName, $value, isset($state['displayvalue']) ? $state['displayvalue'] : $this->splitCamelCase($this->getLastSnippet($state['value'])));
                             break;
 
+                        case VARIABLETYPE_FLOAT:
                         case VARIABLETYPE_INTEGER:
                             if (isset($state['unit'])) {
                                 IPS_SetVariableProfileText($profileName, '', ' ' . $state['unit']);
@@ -482,25 +547,25 @@ declare(strict_types=1);
                     $variableType = VARIABLETYPE_STRING;
                     break;
             }
-
+            
+            if (!IPS_VariableProfileExists($profileName)) {
+                //Create profile
+                IPS_CreateVariableProfile($profileName, $variableType);
+            }
             switch($variableType) {
                 case VARIABLETYPE_INTEGER:
                 case VARIABLETYPE_FLOAT:
                     $available[$ident]['unit'] = $data['unit'];
-                    if (!IPS_VariableProfileExists($profileName)) {
-                        //Create profile
-                        IPS_CreateVariableProfile($profileName, $variableType);
-                    }
                     IPS_SetVariableProfileText($profileName, '', ' ' . $data['unit']);
                     IPS_SetVariableProfileValues($profileName, $constraints['min'], $constraints['max'], isset($constraints['stepsize']) ? $constraints['stepsize'] : 1);
                     break;
 
+                case VARIABLETYPE_BOOLEAN:
+                    IPS_SetVariableProfileAssociation($profileName, true, $this->Translate('Yes'), '', -1);
+                    IPS_SetVariableProfileAssociation($profileName, false, $this->Translate('No'), '', -1);
+                    break;
+                
                 default:
-                    $variableType = VARIABLETYPE_STRING;
-                    if (!IPS_VariableProfileExists($profileName)) {
-                        //Create profile
-                        IPS_CreateVariableProfile($profileName, $variableType);
-                    }
                     //Add potential new options
                     $newAssociations = [];
                     for ($i = 0; $i < count($constraints['allowedvalues']); $i++) {
