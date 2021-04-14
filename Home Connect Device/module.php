@@ -178,6 +178,7 @@ declare(strict_types=1);
                             break;
 
                         case VARIABLETYPE_INTEGER:
+                        case VARIABLETYPE_FLOAT:
                             if (isset($state['unit'])) {
                                 IPS_SetVariableProfileText($profileName, '', ' ' . $state['unit']);
                             }
@@ -265,7 +266,7 @@ declare(strict_types=1);
                 return;
             }
             $ident = $this->getLastSnippet($data['key']);
-            $displayName = isset($data['name']) ? $data['name'] : $ident;
+            $displayName = isset($data['name']) ? $data['name'] : $this->Translate($this->splitCamelCase($ident));
             $profileName = str_replace('BSH', 'HomeConnect', $data['key']);
             $profile = IPS_VariableProfileExists($profileName) ? $profileName : '';
             $this->MaintainVariable($ident, $displayName, $this->getVariableType($data['value']), $profile, 0, true);
@@ -388,5 +389,6 @@ declare(strict_types=1);
                     IPS_SetHidden($this->GetIDForIdent($ident), true);
                 }
             }
+            $this->SendDebug('FINISHED', 'Hidden', 0);
         }
     }
