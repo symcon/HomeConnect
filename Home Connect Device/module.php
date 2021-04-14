@@ -14,6 +14,12 @@ declare(strict_types=1);
             //StartInRelative is not selectable
             'BSH.Common.Option.StartInRelative',
         ];
+
+        const INCLUDE = [
+            'BSH.Common.Option.ElapsedProgramTime',
+            'BSH.Common.Option.RemainingProgramTime',
+            'BSH.Common.Option.ProgramProgress',
+        ];
         public function Create()
         {
             //Never delete this line!
@@ -38,6 +44,14 @@ declare(strict_types=1);
                 IPS_CreateVariableProfile('HomeConnect.Common.Option.ProgramProgress', VARIABLETYPE_INTEGER);
                 IPS_SetVariableProfileText('HomeConnect.Common.Option.ProgramProgress', '', ' ' . '%');
             }
+            if (!IPS_VariableProfileExists('HomeConnect.Common.Option.ElapsedProgramTime')) {
+                IPS_CreateVariableProfile('HomeConnect.Common.Option.ElapsedProgramTime', VARIABLETYPE_INTEGER);
+                IPS_SetVariableProfileText('HomeConnect.Common.Option.ElapsedProgramTime', '', ' ' . $this->Translate('Seconds'));
+            }
+            if (!IPS_VariableProfileExists('HomeConnect.Common.Option.RemainingProgramTime')) {
+                IPS_CreateVariableProfile('HomeConnect.Common.Option.RemainingProgramTime', VARIABLETYPE_INTEGER);
+                IPS_SetVariableProfileText('HomeConnect.Common.Option.RemainingProgramTime', '', ' ' . $this->Translate('Seconds'));
+            }
         }
 
         public function Destroy()
@@ -56,11 +70,11 @@ declare(strict_types=1);
                     if ($this->ReadPropertyString('HaID')) {
                         $this->createStates();
                         $this->setupSettings();
-                        $this->createPrograms();
+                        // $this->createPrograms();
                         //If the device is inactive, we cannot retrieve information about the current selected Program
-                        if (@IPS_GetObjectIDByIdent('OperationState', $this->InstanceID) && ($this->GetValue('OperationState') != 'BSH.Common.EnumType.OperationState.Inactive')) {
-                            $this->updateOptionValues($this->getSelectedProgram()['data']);
-                        }
+                        // if (@IPS_GetObjectIDByIdent('OperationState', $this->InstanceID) && ($this->GetValue('OperationState') != 'BSH.Common.EnumType.OperationState.Inactive')) {
+                        //     $this->updateOptionValues($this->getSelectedProgram()['data']);
+                        // }
                     }
                 }
             }
@@ -78,230 +92,60 @@ declare(strict_types=1);
                     $cleanData[$matches[1]] = $matches[2];
                 }
             }
+            $items = json_decode($cleanData['data'], true)['items'];
+            $this->SendDebug($cleanData['event'], json_encode($items), 0);
             switch ($cleanData['event']) {
                 case 'STATUS':
-                case 'NOTIFY':
-                    $items = json_decode($cleanData['data'], true)['items'];
-                    $this->SendDebug($cleanData['event'], json_encode($items), 0);
                     foreach ($items as $item) {
-                        $this->SendDebug('key', json_encode($item['key']), 0);
-                        if (in_array($item['key'], self::EXCLUDE)) {
-                            continue;
-                        }
                         $ident = $this->getLastSnippet($item['key']);
-                        if (in_array($item['key'], self::ATTRIBUTES)) {
-                            $this->WriteAttributeBoolean($ident, $item['value']);
-                            continue;
-                        }
+                        switch ($item['key']) {
+                            case 'BSH.Common.Status.RemoteControlStartAllowed':
+                            case 'BSH.Common.Status.RemoteControlActive':
+                            case 'BSH.Common.Status.LocalControlActive':
+                                $this->WriteAttributeBoolean($ident, $item['value']);
+                                break;
+                            case 'BSH.Common.Status.OperationState':
+                                switch ($item['value']) {
+                                    case 'BSH.Common.EnumType.OperationState.Finished':
+                                        $this->resetProgress();
+                                        break;
+                                }
+                                // FIXME: No break. Please add proper comment if intentional
+                            default:
+                                $this->createStates(['data' => ['status' => [$item]]]);
+                                $this->SetValue($ident, $item['value']);
 
-                        preg_match('/.+\.(?P<type>.+)\..+/m', $item['key'], $matches);
-                        if ($matches) {
-                            switch ($matches['type']) {
-                                case 'Status':
-                                    $this->createStates(['data' => ['status' => [$item]]]);
-                                    $this->SendDebug('Status', 'changes', 0);
-                                    break;
-
-                                default:
-                                    if (!@IPS_GetObjectIDByIdent($ident, $this->InstanceID)) {
-                                        $this->createVariableByData($item);
-                                    }
-                                    if ($ident == 'SelectedProgram') {
-                                        $this->updateOptionValues($item);
-                                    }
-                                    $this->SetValue($ident, $item['value']);
-                                    break;
-                            }
                         }
                     }
+                    break;
 
+                case 'NOTIFY':
+                    foreach ($items as $item) {
+                        $ident = $this->getLastSnippet($item['key']);
+                        if (!@IPS_GetObjectIDByIdent($ident, $this->InstanceID)) {
+                            $this->createVariableByData($item);
+                        }
+                        IPS_SetHidden($this->GetIDForIdent($ident), false);
+                        $this->SetValue($ident, $item['value']);
+                    }
+                    break;
             }
-        }
-
-        public function GetConfigurationForm()
-        {
-            $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
-            return json_encode($form);
         }
 
         public function RequestAction($Ident, $Value)
         {
-            switch ($Ident) {
-                case 'SelectedProgram':
-                    if (!$this->ReadAttributeBoolean('RemoteControlActive')) {
-                        echo $this->Translate('Remote control not active');
-                        return;
-                    }
-                    $payload = [
-                        'data' => [
-                            'key'     => $Value,
-                            'options' => []
-                        ]
-                    ];
-                    $this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected', json_encode($payload));
-                    $this->updateOptionValues($this->getSelectedProgram()['data']);
-                    break;
-
-                case 'Control':
-                    switch ($Value) {
-                        case 'Start':
-                            if (!$this->ReadAttributeBoolean('RemoteControlStartAllowed')) {
-                                echo $this->Translate('Remote start not allowed');
-                                break;
-                            }
-
-                            $payload = [
-                                'data' => [
-                                    'key'     => $this->GetValue('SelectedProgram'),
-                                    'options' => $this->createOptionPayload()
-                                ]
-                            ];
-                            $this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/active', json_encode($payload));
-                            break;
-                    }
-                    break;
-
-                default:
-                    $availableOptions = json_decode($this->ReadAttributeString('Options'), true);
-                    $this->SendDebug('Settings', json_encode($availableOptions), 0);
-                    if (isset($availableOptions[$Ident])) {
-                        if (!$this->ReadAttributeBoolean('RemoteControlActive')) {
-                            echo $this->Translate('Remote control not active');
-                            return;
-                        }
-                        $payload = [
-                            'data' => [
-                                'key'   => $availableOptions[$Ident]['key'],
-                                'value' => $Value
-                            ]
-                        ];
-                        if (isset($availableOptions[$Ident]['unit'])) {
-                            $payload['data']['unit'] = $availableOptions[$Ident]['unit'];
-                        }
-                        $this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected/options/' . $availableOptions[$Ident]['key'], json_encode($payload));
-                    }
-
-                    $availableSettings = json_decode($this->ReadAttributeString('Settings'), true);
-                    $this->SendDebug('Settings', json_encode($availableSettings), 0);
-                    if (isset($availableSettings[$Ident])) {
-                        $payload = [
-                            'data' => [
-                                'key'   => $availableSettings[$Ident]['key'],
-                                'value' => $Value
-                            ]
-                        ];
-                        $this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/settings/' . $availableSettings[$Ident]['key'], json_encode($payload));
-                    }
-                    break;
+            $availableSettings = json_decode($this->ReadAttributeString('Settings'), true);
+            $this->SendDebug('Settings', json_encode($availableSettings), 0);
+            if (isset($availableSettings[$Ident])) {
+                $payload = [
+                    'data' => [
+                        'key'   => $availableSettings[$Ident]['key'],
+                        'value' => $Value
+                    ]
+                ];
+                $this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/settings/' . $availableSettings[$Ident]['key'], json_encode($payload));
             }
             $this->SetValue($Ident, $Value);
-        }
-
-        private function createPrograms()
-        {
-            $rawPrograms = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/available'), true);
-            $this->SendDebug('RawPrograms', json_encode($rawPrograms), 0);
-            if (!isset($rawPrograms['data']['programs'])) {
-                return;
-            }
-            $programs = $rawPrograms['data']['programs'];
-            $this->SendDebug('Programs', json_encode($programs), 0);
-            $profileName = 'HomeConnect.' . $this->ReadPropertyString('DeviceType') . '.Programs';
-            if (!IPS_VariableProfileExists($profileName)) {
-                IPS_CreateVariableProfile($profileName, VARIABLETYPE_STRING);
-            } else {
-                //Clear profile if it exists
-                foreach (IPS_GetVariableProfile($profileName)['Associations'] as $association) {
-                    IPS_SetVariableProfileAssociation($profileName, $association['Value'], '', '', 0);
-                }
-            }
-            foreach ($programs as $program) {
-                preg_match('/(?P<program>.+)\.(?P<value>.+)/m', $program['key'], $matches);
-                $displayName = isset($program['name']) ? $program['name'] : $matches['value'];
-                IPS_SetVariableProfileAssociation($profileName, $program['key'], $displayName, '', -1);
-            }
-            $ident = 'SelectedProgram';
-            $this->MaintainVariable($ident, $this->Translate('Program'), VARIABLETYPE_STRING, $profileName, 1, true);
-            $this->EnableAction($ident);
-        }
-
-        private function createOptionPayload()
-        {
-            $availableOptions = json_decode($this->ReadAttributeString('Options'), true);
-            $this->SendDebug('options', json_encode($availableOptions), 0);
-            $optionsPayload = [];
-            foreach ($availableOptions as $ident => $option) {
-                $optionsPayload[] = [
-                    'key'   => $option['key'],
-                    'value' => $this->GetValue($ident)
-                ];
-            }
-            return $optionsPayload;
-        }
-
-        private function updateOptionVariables($program)
-        {
-            $rawOptions = $this->getProgram($program);
-            $this->SendDebug('RawOptions', json_encode($rawOptions), 0);
-            if (!isset($rawOptions['options'])) {
-                return;
-            }
-            $options = $rawOptions['options'];
-            $position = 10;
-            foreach ($options as $option) {
-                if (in_array($option['key'], self::EXCLUDE)) {
-                    continue;
-                }
-                $this->SendDebug($option['key'], json_encode($option), 0);
-                $key = $option['key'];
-                preg_match('/.+\.(?P<option>.+)/m', $key, $matches);
-                $ident = $matches['option'];
-
-                $profileName = 'HomeConnect.' . $this->ReadPropertyString('DeviceType') . '.Option.' . $ident;
-                $this->createVariableFromConstraints($profileName, $option, 'Options', $position);
-                $position++;
-            }
-
-            if (!IPS_VariableProfileExists('HomeConnect.Control')) {
-                IPS_CreateVariableProfile('HomeConnect.Control', VARIABLETYPE_STRING);
-                IPS_SetVariableProfileAssociation('HomeConnect.Control', 'Start', $this->Translate('Start'), '', -1);
-            }
-            if (!@IPS_GetObjectIDByIdent('Control', $this->InstanceID)) {
-                $this->MaintainVariable('Control', $this->Translate('Control'), VARIABLETYPE_STRING, 'HomeConnect.Control', $position, true);
-                $this->EnableAction('Control');
-            }
-        }
-
-        private function getSelectedProgram()
-        {
-            return json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected'), true);
-        }
-
-        private function getProgram($key)
-        {
-            $data = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/available/' . $key), true)['data'];
-            return $data;
-        }
-
-        private function getOption($key)
-        {
-            if (in_array($key, self::EXCLUDE)) {
-                return false;
-            }
-            $data = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected/options/' . $key), true)['data'];
-            return $data;
-        }
-        private function updateOptionValues($program)
-        {
-            $this->SetValue('SelectedProgram', $program['key']);
-            $this->updateOptionVariables($program['key']);
-            foreach ($program['options'] as $option) {
-                $ident = $this->getLastSnippet($option['key']);
-                if (@IPS_GetObjectIDByIdent($ident, $this->InstanceID)) {
-                    $this->SendDebug('Value', $option['value'], 0);
-                    $this->SetValue($ident, $option['value']);
-                }
-            }
         }
 
         private function createStates($states = '')
@@ -387,13 +231,6 @@ declare(strict_types=1);
             return $response;
         }
 
-        private function createAssociations($profileName, $associations)
-        {
-            foreach ($associations as $association) {
-                IPS_SetVariableProfileAssociation($profileName, $association['Value'], $this->Translate($association['Name']), '', -1);
-            }
-        }
-
         private function setupSettings()
         {
             $allSettings = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/settings'), true);
@@ -424,6 +261,9 @@ declare(strict_types=1);
 
         private function createVariableByData($data)
         {
+            if (!in_array($data['key'], self::INCLUDE)) {
+                return;
+            }
             $ident = $this->getLastSnippet($data['key']);
             $displayName = isset($data['name']) ? $data['name'] : $ident;
             $profileName = str_replace('BSH', 'HomeConnect', $data['key']);
@@ -454,7 +294,7 @@ declare(strict_types=1);
             return $this->Translate(implode(' ', $matches[0]));
         }
 
-        private function createVariableFromConstraints($profileName, $data, $attribute ,$position)
+        private function createVariableFromConstraints($profileName, $data, $attribute, $position)
         {
             $available = json_decode($this->ReadAttributeString($attribute), true);
             $ident = $this->getLastSnippet($data['key']);
@@ -483,7 +323,7 @@ declare(strict_types=1);
                     break;
             }
 
-            switch($variableType) {
+            switch ($variableType) {
                 case VARIABLETYPE_INTEGER:
                 case VARIABLETYPE_FLOAT:
                     $available[$ident]['unit'] = $data['unit'];
@@ -507,7 +347,7 @@ declare(strict_types=1);
                         $displayName = isset($constraints['displayvalues'][$i]) ? $constraints['displayvalues'][$i] : $this->getLastSnippet($constraints['allowedvalues'][$i]);
                         $newAssociations[$constraints['allowedvalues'][$i]] = $displayName;
                     }
-    
+
                     //Get current options from profile
                     $oldAssociations = [];
                     foreach (IPS_GetVariableProfile($profileName)['Associations'] as $association) {
@@ -534,7 +374,19 @@ declare(strict_types=1);
             if (!@IPS_GetObjectIDByIdent($ident, $this->InstanceID)) {
                 $displayName = isset($data['name']) ? $data['name'] : $ident;
                 $this->MaintainVariable($ident, $displayName, $variableType, $profileName, $position, true);
-                $this->EnableAction($ident);
+                if ((isset($constraints['access']) && $constraints['access'] == 'readWrite') || !isset($constraints['access'])) {
+                    $this->EnableAction($ident);
+                }
+            }
+        }
+
+        private function resetProgress()
+        {
+            foreach (self::INCLUDE as $key) {
+                $ident = $this->getLastSnippet($key);
+                if (@IPS_GetObjectIDByIdent($ident, $this->InstanceID)) {
+                    IPS_SetHidden($this->GetIDForIdent($ident), true);
+                }
             }
         }
     }
