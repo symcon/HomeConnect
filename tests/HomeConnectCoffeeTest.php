@@ -12,16 +12,15 @@ use PHPUnit\Framework\TestCase;
 
 class HomeConnectBaseTest extends TestCase
 {
-
     const COFFEE = [
         'OperationState'   => 'Bereit',
-            'DoorState'        => 'Geschlossen',
-            'PowerState'       => 'An',
-            'SelectedProgram'  => 'Caffe Crema',
-            'CoffeeTemperature'=> '90°C',
-            'BeanAmount'       => 'Stark +',
-            'FillQuantity'     => '120 ml',
-            'Control'          => 'Start'
+        'DoorState'        => 'Geschlossen',
+        'PowerState'       => 'An',
+        'SelectedProgram'  => 'Caffe Crema',
+        'CoffeeTemperature'=> '90°C',
+        'BeanAmount'       => 'Stark +',
+        'FillQuantity'     => '120 ml',
+        'Control'          => 'Start'
     ];
 
     const ESPRESSO = [
@@ -34,7 +33,6 @@ class HomeConnectBaseTest extends TestCase
         'FillQuantity'      => '40 ml',
         'Control'           => 'Start'
     ];
-    
 
     protected function setUp(): void
     {
@@ -109,9 +107,10 @@ class HomeConnectBaseTest extends TestCase
         return $result;
     }
 
-    private function buildEvent($event) {
+    private function buildEvent($event)
+    {
         $string = '';
-        foreach($event as $name => $value) {
+        foreach ($event as $name => $value) {
             $string .= $name . ': ' . $value . "\n";
         }
         return $string;
