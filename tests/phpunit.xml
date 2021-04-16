@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit>
+    <php>
+        <const name="PHPUNIT_TESTSUITE" value="true"/>
+    </php>
+    <filter>
+        <whitelist processUncoveredFilesFromWhitelist="true">
+            <directory suffix=".php">../Home Connect Cloud</directory>
+            <directory suffix=".php">../Home Connect Configurator</directory>
+            <directory suffix=".php">../Home Connect Device</directory>
+            <directory suffix=".php">../libs</directory>
+        </whitelist>
+    </filter>
+</phpunit>

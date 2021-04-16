@@ -1,0 +1,15 @@
+{
+    "data": {
+      "homeappliances": [
+        {
+          "name": "Kaffeevollautomat",
+          "brand": "Siemens",
+          "vib": "TI9575X1DE",
+          "connected": true,
+          "type": "CoffeeMaker",
+          "enumber": "TI9575X1DE/10",
+          "haId": "SIEMENS-TI9575X1DE-68A40E251CAD"
+        }
+      ]
+    }
+  }

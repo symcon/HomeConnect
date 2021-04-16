@@ -1,0 +1,43 @@
+{
+    "data": {
+      "key": "ConsumerProducts.CoffeeMaker.Program.Beverage.Coffee",
+      "options": [
+        {
+          "key": "ConsumerProducts.CoffeeMaker.Option.CoffeeTemperature",
+          "value": "ConsumerProducts.CoffeeMaker.EnumType.CoffeeTemperature.90C",
+          "name": "Temperatur",
+          "displayvalue": "90°C"
+        },
+        {
+          "key": "ConsumerProducts.CoffeeMaker.Option.BeanAmount",
+          "value": "ConsumerProducts.CoffeeMaker.EnumType.BeanAmount.StrongPlus",
+          "name": "Stärke",
+          "displayvalue": "Stark +"
+        },
+        {
+          "key": "ConsumerProducts.CoffeeMaker.Option.FillQuantity",
+          "value": 120,
+          "unit": "ml",
+          "name": "Menge"
+        },
+        {
+          "key": "ConsumerProducts.CoffeeMaker.Option.MultipleBeverages",
+          "value": false,
+          "name": "Doppelbezug"
+        },
+        {
+          "key": "ConsumerProducts.CoffeeMaker.Option.FlowRate",
+          "value": "ConsumerProducts.CoffeeMaker.EnumType.FlowRate.Normal",
+          "name": "Intensität",
+          "displayvalue": "normal"
+        },
+        {
+          "key": "ConsumerProducts.CoffeeMaker.Option.BeanContainerSelection",
+          "value": "ConsumerProducts.CoffeeMaker.EnumType.BeanContainerSelection.Left",
+          "name": "Bohnentank",
+          "displayvalue": "Standardbehälter Links"
+        }
+      ],
+      "name": "Caffe Crema"
+    }
+  }

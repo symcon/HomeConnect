@@ -3,16 +3,16 @@
 declare(strict_types=1);
     class HomeConnectDevice extends IPSModule
     {
-        const ATTRIBUTES = [
+        const RESTRICTIONS = [
             'BSH.Common.Status.RemoteControlStartAllowed',
             'BSH.Common.Status.RemoteControlActive',
-            'BSH.Common.Status.LocalControlActive',
-            'BSH.Common.Root.ActiveProgram'
+            'BSH.Common.Status.LocalControlActive'
         ];
 
         const EXCLUDE = [
             //StartInRelative is not selectable
             'BSH.Common.Option.StartInRelative',
+            'BSH.Common.Root.ActiveProgram'
         ];
         public function Create()
         {
@@ -27,11 +27,8 @@ declare(strict_types=1);
             $this->RegisterAttributeString('Options', '[]');
             $this->RegisterAttributeString('Settings', '[]');
 
-            //States
-            $this->RegisterAttributeBoolean('RemoteControlActive', false);
-            $this->RegisterAttributeBoolean('RemoteControlStartAllowed', false);
-            $this->RegisterAttributeBoolean('LocalControlActive', false);
-            $this->RegisterAttributeBoolean('ActiveProgram', false);
+            //Restrictions
+            $this->RegisterAttributeString('Restrictions', '');
 
             //Options
             if (!IPS_VariableProfileExists('HomeConnect.Common.Option.ProgramProgress')) {
@@ -59,7 +56,7 @@ declare(strict_types=1);
                         $this->createPrograms();
                         //If the device is inactive, we cannot retrieve information about the current selected Program
                         if (@IPS_GetObjectIDByIdent('OperationState', $this->InstanceID) && ($this->GetValue('OperationState') != 'BSH.Common.EnumType.OperationState.Inactive')) {
-                            $this->updateOptionValues($this->getSelectedProgram()['data']);
+                            $this->updateOptionValues($this->getSelectedProgram());
                         }
                     }
                 }
@@ -75,7 +72,7 @@ declare(strict_types=1);
             foreach ($rawData as $entry) {
                 preg_match('/(.*?):[ ]*(.*)/', $entry, $matches);
                 if ($matches) {
-                    $cleanData[$matches[1]] = $matches[2];
+                    $cleanData[preg_replace('/\s+/', '', $matches[1])] = preg_replace('/\s+/', '', $matches[2]);
                 }
             }
             switch ($cleanData['event']) {
@@ -89,9 +86,9 @@ declare(strict_types=1);
                             continue;
                         }
                         $ident = $this->getLastSnippet($item['key']);
-                        if (in_array($item['key'], self::ATTRIBUTES)) {
-                            $this->WriteAttributeBoolean($ident, $item['value']);
-                            continue;
+                        if (in_array($item['key'], self::RESTRICTIONS)) {
+                            $this->updateRestrictions($ident, $item);
+                            continue;   
                         }
 
                         preg_match('/.+\.(?P<type>.+)\..+/m', $item['key'], $matches);
@@ -107,7 +104,9 @@ declare(strict_types=1);
                                         $this->createVariableByData($item);
                                     }
                                     if ($ident == 'SelectedProgram') {
-                                        $this->updateOptionValues($item);
+                                        // $this->updateOptionValues($this->getProgram($item['value']));
+                                        $this->updateOptionValues($this->getSelectedProgram());
+
                                     }
                                     $this->SetValue($ident, $item['value']);
                                     break;
@@ -128,8 +127,7 @@ declare(strict_types=1);
         {
             switch ($Ident) {
                 case 'SelectedProgram':
-                    if (!$this->ReadAttributeBoolean('RemoteControlActive')) {
-                        echo $this->Translate('Remote control not active');
+                    if (!$this->switchable()) {
                         return;
                     }
                     $payload = [
@@ -139,17 +137,15 @@ declare(strict_types=1);
                         ]
                     ];
                     $this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected', json_encode($payload));
-                    $this->updateOptionValues($this->getSelectedProgram()['data']);
+                    $this->updateOptionValues($this->getSelectedProgram());
                     break;
 
                 case 'Control':
                     switch ($Value) {
                         case 'Start':
-                            if (!$this->ReadAttributeBoolean('RemoteControlStartAllowed')) {
-                                echo $this->Translate('Remote start not allowed');
-                                break;
+                            if (!$this->switchable()) {
+                                return;
                             }
-
                             $payload = [
                                 'data' => [
                                     'key'     => $this->GetValue('SelectedProgram'),
@@ -162,13 +158,11 @@ declare(strict_types=1);
                     break;
 
                 default:
+                    if (!$this->switchable()) {
+                        return;
+                    }
                     $availableOptions = json_decode($this->ReadAttributeString('Options'), true);
-                    $this->SendDebug('Settings', json_encode($availableOptions), 0);
                     if (isset($availableOptions[$Ident])) {
-                        if (!$this->ReadAttributeBoolean('RemoteControlActive')) {
-                            echo $this->Translate('Remote control not active');
-                            return;
-                        }
                         $payload = [
                             'data' => [
                                 'key'   => $availableOptions[$Ident]['key'],
@@ -268,19 +262,23 @@ declare(strict_types=1);
             }
             if (!@IPS_GetObjectIDByIdent('Control', $this->InstanceID)) {
                 $this->MaintainVariable('Control', $this->Translate('Control'), VARIABLETYPE_STRING, 'HomeConnect.Control', $position, true);
+                $this->SetValue('Control', 'Start');
                 $this->EnableAction('Control');
             }
         }
 
         private function getSelectedProgram()
         {
-            return json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected'), true);
+            return json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected'), true)['data'];
         }
 
         private function getProgram($key)
         {
-            $data = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/available/' . $key), true)['data'];
-            return $data;
+            $endpoint = 'homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/available/' . $key;
+            $data = json_decode($this->requestDataFromParent($endpoint), true);
+            $this->SendDebug('The Program', json_encode($data), 0);
+            $this->SendDebug('The Program Endpoint', $endpoint, 0);
+            return $data['data'];
         }
 
         private function getOption($key)
@@ -298,7 +296,7 @@ declare(strict_types=1);
             foreach ($program['options'] as $option) {
                 $ident = $this->getLastSnippet($option['key']);
                 if (@IPS_GetObjectIDByIdent($ident, $this->InstanceID)) {
-                    $this->SendDebug('Value', $option['value'], 0);
+                    $this->SendDebug('Value',strval( $option['value']), 0);
                     $this->SetValue($ident, $option['value']);
                 }
             }
@@ -316,8 +314,8 @@ declare(strict_types=1);
                 foreach ($data['data']['status'] as $state) {
                     $ident = $this->getLastSnippet($state['key']);
                     //Skip remote control states and transfer to attributess
-                    if (in_array($state['key'], self::ATTRIBUTES)) {
-                        $this->WriteAttributeBoolean($ident, $state['value']);
+                    if (in_array($state['key'], self::RESTRICTIONS)) {
+                        $this->updateRestrictions($ident, $state);
                         continue;
                     }
                     $value = $state['value'];
@@ -456,6 +454,8 @@ declare(strict_types=1);
 
         private function createVariableFromConstraints($profileName, $data, $attribute ,$position)
         {
+            $this->SendDebug('UpdatingProfile', $profileName, 0);
+
             $available = json_decode($this->ReadAttributeString($attribute), true);
             $ident = $this->getLastSnippet($data['key']);
 
@@ -482,7 +482,8 @@ declare(strict_types=1);
                     $variableType = VARIABLETYPE_STRING;
                     break;
             }
-
+            if ($profileName == 'HomeConnect.CoffeeMaker.Option.FillQuantity') {
+            }
             switch($variableType) {
                 case VARIABLETYPE_INTEGER:
                 case VARIABLETYPE_FLOAT:
@@ -493,6 +494,7 @@ declare(strict_types=1);
                     }
                     IPS_SetVariableProfileText($profileName, '', ' ' . $data['unit']);
                     IPS_SetVariableProfileValues($profileName, $constraints['min'], $constraints['max'], isset($constraints['stepsize']) ? $constraints['stepsize'] : 1);
+                    $this->SendDebug('UpdatedProfile', $constraints['min'] . ' - ' . $constraints['max'], 0);
                     break;
 
                 default:
@@ -536,5 +538,25 @@ declare(strict_types=1);
                 $this->MaintainVariable($ident, $displayName, $variableType, $profileName, $position, true);
                 $this->EnableAction($ident);
             }
+        }
+
+        private function switchable() {
+            $restrictions = json_decode($this->ReadAttributeString('Restrictions'), true);
+            $switchable = true;
+            foreach($restrictions as $restriction => $value) {
+                if ($restriction != 'LocalControlActive') {
+                    $switchable = $value;
+                } else {
+                    $switchable = !$value;
+                }
+                $switchable = $restriction == 'LocalControlActive' ? !$value : $value;
+            }
+            return $switchable;
+        }
+
+        private function updateRestrictions($ident, $data) {
+            $restrictions = json_decode($this->ReadAttributeString('Restrictions'), true);
+            $restrictions[$ident] = $data['value'];
+            $this->WriteAttributeString('Restrictions', json_encode($restrictions));
         }
     }

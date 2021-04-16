@@ -3,10 +3,11 @@
 declare(strict_types=1);
 
     include_once __DIR__ . '/../libs/WebOAuthModule.php';
+    include_once __DIR__ . '/api-test.php';
 
     class HomeConnectCloud extends WebOAuthModule
     {
-        //Simulatoion
+        // Simulatoion
         // const HOME_CONNECT_BASE = 'https://simulator.home-connect.com/api/';
         // private $oauthIdentifer = 'home_connect_dev';
 
@@ -16,10 +17,12 @@ declare(strict_types=1);
 
         private $oauthServer = 'oauth.ipmagic.de';
 
+        use TestAPI;
         public function __construct($InstanceID)
         {
             parent::__construct($InstanceID, $this->oauthIdentifer);
         }
+
 
         public function Create()
         {
@@ -56,9 +59,9 @@ declare(strict_types=1);
             $data = json_decode($Data, true);
             $this->SendDebug('Forward', $Data, 0);
             if (isset($data['Payload'])) {
-                return $this->putData($data['Endpoint'], $data['Payload']);
+                return $this->putRequest($data['Endpoint'], $data['Payload']);
             }
-            return $this->getData($data['Endpoint']);
+            return $this->getRequest($data['Endpoint']);
         }
 
         public function ReceiveData($JSONString)

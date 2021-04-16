@@ -1,0 +1,91 @@
+{
+  "data": {
+    "key": "ConsumerProducts.CoffeeMaker.Program.Beverage.EspressoMacchiato",
+    "options": [
+      {
+        "key": "ConsumerProducts.CoffeeMaker.Option.CoffeeTemperature",
+        "type": "ConsumerProducts.CoffeeMaker.EnumType.CoffeeTemperature",
+        "constraints": {
+          "allowedvalues": [
+            "ConsumerProducts.CoffeeMaker.EnumType.CoffeeTemperature.88C",
+            "ConsumerProducts.CoffeeMaker.EnumType.CoffeeTemperature.90C",
+            "ConsumerProducts.CoffeeMaker.EnumType.CoffeeTemperature.92C",
+            "ConsumerProducts.CoffeeMaker.EnumType.CoffeeTemperature.94C",
+            "ConsumerProducts.CoffeeMaker.EnumType.CoffeeTemperature.95C",
+            "ConsumerProducts.CoffeeMaker.EnumType.CoffeeTemperature.96C"
+          ],
+          "displayvalues": [
+            "88°C",
+            "90°C",
+            "92°C",
+            "94°C",
+            "95°C",
+            "96°C"
+          ],
+          "default": "ConsumerProducts.CoffeeMaker.EnumType.CoffeeTemperature.94C",
+          "liveupdate": true
+        },
+        "name": "Temperatur"
+      },
+      {
+        "key": "ConsumerProducts.CoffeeMaker.Option.BeanAmount",
+        "type": "ConsumerProducts.CoffeeMaker.EnumType.BeanAmount",
+        "constraints": {
+          "allowedvalues": [
+            "ConsumerProducts.CoffeeMaker.EnumType.BeanAmount.VeryMild",
+            "ConsumerProducts.CoffeeMaker.EnumType.BeanAmount.Mild",
+            "ConsumerProducts.CoffeeMaker.EnumType.BeanAmount.MildPlus",
+            "ConsumerProducts.CoffeeMaker.EnumType.BeanAmount.Normal",
+            "ConsumerProducts.CoffeeMaker.EnumType.BeanAmount.NormalPlus",
+            "ConsumerProducts.CoffeeMaker.EnumType.BeanAmount.Strong",
+            "ConsumerProducts.CoffeeMaker.EnumType.BeanAmount.StrongPlus",
+            "ConsumerProducts.CoffeeMaker.EnumType.BeanAmount.VeryStrong",
+            "ConsumerProducts.CoffeeMaker.EnumType.BeanAmount.VeryStrongPlus",
+            "ConsumerProducts.CoffeeMaker.EnumType.BeanAmount.ExtraStrong",
+            "ConsumerProducts.CoffeeMaker.EnumType.BeanAmount.DoubleShot",
+            "ConsumerProducts.CoffeeMaker.EnumType.BeanAmount.DoubleShotPlus",
+            "ConsumerProducts.CoffeeMaker.EnumType.BeanAmount.DoubleShotPlusPlus",
+            "ConsumerProducts.CoffeeMaker.EnumType.BeanAmount.TripleShot",
+            "ConsumerProducts.CoffeeMaker.EnumType.BeanAmount.TripleShotPlus",
+            "ConsumerProducts.CoffeeMaker.EnumType.BeanAmount.CoffeeGround"
+          ],
+          "displayvalues": [
+            "Sehr mild",
+            "Mild",
+            "Mild +",
+            "Normal",
+            "Normal +",
+            "Stark",
+            "Stark +",
+            "Sehr stark",
+            "Sehr stark +",
+            "Extra stark",
+            "DoubleShot",
+            "DoubleShot +",
+            "DoubleShot ++",
+            "TripleShot",
+            "TripleShot+",
+            "Kaffeepulver"
+          ],
+          "default": "ConsumerProducts.CoffeeMaker.EnumType.BeanAmount.VeryStrong",
+          "liveupdate": true
+        },
+        "name": "Stärke"
+      },
+      {
+        "name": "Menge",
+        "key": "ConsumerProducts.CoffeeMaker.Option.FillQuantity",
+        "constraints": {
+          "min": 20,
+          "liveupdate": true,
+          "max": 400,
+          "stepsize": 5,
+          "default": 60
+        },
+        "unit": "ml",
+        "type": "Int"
+      }
+    ],
+    "name": "Espresso Macchiato"
+  }
+}
