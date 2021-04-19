@@ -7,7 +7,8 @@ declare(strict_types=1);
 
     class HomeConnectCloud extends WebOAuthModule
     {
-        // Simulatoion
+        use TestAPI;
+        // Simulation
         // const HOME_CONNECT_BASE = 'https://simulator.home-connect.com/api/';
         // private $oauthIdentifer = 'home_connect_dev';
 
@@ -16,13 +17,10 @@ declare(strict_types=1);
         private $oauthIdentifer = 'home_connect';
 
         private $oauthServer = 'oauth.ipmagic.de';
-
-        use TestAPI;
         public function __construct($InstanceID)
         {
             parent::__construct($InstanceID, $this->oauthIdentifer);
         }
-
 
         public function Create()
         {

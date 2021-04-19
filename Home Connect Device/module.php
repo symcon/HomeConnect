@@ -87,7 +87,7 @@ declare(strict_types=1);
                         $ident = $this->getLastSnippet($item['key']);
                         if (in_array($item['key'], self::RESTRICTIONS)) {
                             $this->updateRestrictions($ident, $item);
-                            continue;   
+                            continue;
                         }
 
                         preg_match('/.+\.(?P<type>.+)\..+/m', $item['key'], $matches);
@@ -104,7 +104,6 @@ declare(strict_types=1);
                                     if ($ident == 'SelectedProgram') {
                                         // $this->updateOptionValues($this->getProgram($item['value']));
                                         $this->updateOptionValues($this->getSelectedProgram());
-
                                     }
                                     $this->SetValue($ident, $item['value']);
                                     break;
@@ -290,7 +289,7 @@ declare(strict_types=1);
             foreach ($program['options'] as $option) {
                 $ident = $this->getLastSnippet($option['key']);
                 if (@IPS_GetObjectIDByIdent($ident, $this->InstanceID)) {
-                    $this->SendDebug('Value',strval( $option['value']), 0);
+                    $this->SendDebug('Value', strval($option['value']), 0);
                     $this->SetValue($ident, $option['value']);
                 }
             }
@@ -444,7 +443,7 @@ declare(strict_types=1);
             return $this->Translate(implode(' ', $matches[0]));
         }
 
-        private function createVariableFromConstraints($profileName, $data, $attribute ,$position)
+        private function createVariableFromConstraints($profileName, $data, $attribute, $position)
         {
             $this->SendDebug('UpdatingProfile', $profileName, 0);
 
@@ -476,7 +475,7 @@ declare(strict_types=1);
             }
             if ($profileName == 'HomeConnect.CoffeeMaker.Option.FillQuantity') {
             }
-            switch($variableType) {
+            switch ($variableType) {
                 case VARIABLETYPE_INTEGER:
                 case VARIABLETYPE_FLOAT:
                     $available[$ident]['unit'] = $data['unit'];
@@ -501,7 +500,7 @@ declare(strict_types=1);
                         $displayName = isset($constraints['displayvalues'][$i]) ? $constraints['displayvalues'][$i] : $this->getLastSnippet($constraints['allowedvalues'][$i]);
                         $newAssociations[$constraints['allowedvalues'][$i]] = $displayName;
                     }
-    
+
                     //Get current options from profile
                     $oldAssociations = [];
                     foreach (IPS_GetVariableProfile($profileName)['Associations'] as $association) {
@@ -532,10 +531,11 @@ declare(strict_types=1);
             }
         }
 
-        private function switchable() {
+        private function switchable()
+        {
             $restrictions = json_decode($this->ReadAttributeString('Restrictions'), true);
             $switchable = true;
-            foreach($restrictions as $restriction => $value) {
+            foreach ($restrictions as $restriction => $value) {
                 if ($restriction != 'LocalControlActive') {
                     $switchable = $value;
                 } else {
@@ -546,7 +546,8 @@ declare(strict_types=1);
             return $switchable;
         }
 
-        private function updateRestrictions($ident, $data) {
+        private function updateRestrictions($ident, $data)
+        {
             $restrictions = json_decode($this->ReadAttributeString('Restrictions'), true);
             $restrictions[$ident] = $data['value'];
             $this->WriteAttributeString('Restrictions', json_encode($restrictions));
