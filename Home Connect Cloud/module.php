@@ -243,16 +243,8 @@ declare(strict_types=1);
                 ]
             ];
             $context = stream_context_create($opts);
-            $this->SendDebug('url', self::HOME_CONNECT_BASE . $endpoint, 0);
-            $this->SendDebug('token', $this->FetchAccessToken(), 0);
 
             $result = file_get_contents(self::HOME_CONNECT_BASE . $endpoint, false, $context);
-            $this->SendDebug('response', $result, 0);
-
-            // if ((strpos($http_response_header[0], '200') === false)) {
-            //     // echo $http_response_header[0] . PHP_EOL . $result;
-            //     return false;
-            // }
 
             return $result;
         }
@@ -271,14 +263,10 @@ declare(strict_types=1);
                 ]
             ];
             $context = stream_context_create($opts);
-            $this->SendDebug('url', self::HOME_CONNECT_BASE . $endpoint, 0);
-            $this->SendDebug('token', $this->FetchAccessToken(), 0);
 
             $result = file_get_contents(self::HOME_CONNECT_BASE . $endpoint, false, $context);
-            $this->SendDebug('response', $result, 0);
 
             if ((strpos($http_response_header[0], '201') === false)) {
-                // $this->SendDebug('Error', json_decode($result, true)['error']['description'], 0);
                 return $result;
             }
 

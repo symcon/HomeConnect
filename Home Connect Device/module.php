@@ -81,7 +81,6 @@ declare(strict_types=1);
                     $items = json_decode($cleanData['data'], true)['items'];
                     $this->SendDebug($cleanData['event'], json_encode($items), 0);
                     foreach ($items as $item) {
-                        $this->SendDebug('key', json_encode($item['key']), 0);
                         if (in_array($item['key'], self::EXCLUDE)) {
                             continue;
                         }
@@ -96,7 +95,6 @@ declare(strict_types=1);
                             switch ($matches['type']) {
                                 case 'Status':
                                     $this->createStates(['data' => ['status' => [$item]]]);
-                                    $this->SendDebug('Status', 'changes', 0);
                                     break;
 
                                 default:
@@ -194,7 +192,6 @@ declare(strict_types=1);
         private function createPrograms()
         {
             $rawPrograms = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/available'), true);
-            $this->SendDebug('RawPrograms', json_encode($rawPrograms), 0);
             if (!isset($rawPrograms['data']['programs'])) {
                 return;
             }
@@ -222,7 +219,7 @@ declare(strict_types=1);
         private function createOptionPayload()
         {
             $availableOptions = json_decode($this->ReadAttributeString('Options'), true);
-            $this->SendDebug('options', json_encode($availableOptions), 0);
+            $this->SendDebug('AvailableOptions', json_encode($availableOptions), 0);
             $optionsPayload = [];
             foreach ($availableOptions as $ident => $option) {
                 $optionsPayload[] = [
@@ -246,7 +243,6 @@ declare(strict_types=1);
                 if (in_array($option['key'], self::EXCLUDE)) {
                     continue;
                 }
-                $this->SendDebug($option['key'], json_encode($option), 0);
                 $key = $option['key'];
                 preg_match('/.+\.(?P<option>.+)/m', $key, $matches);
                 $ident = $matches['option'];
@@ -276,8 +272,6 @@ declare(strict_types=1);
         {
             $endpoint = 'homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/available/' . $key;
             $data = json_decode($this->requestDataFromParent($endpoint), true);
-            $this->SendDebug('The Program', json_encode($data), 0);
-            $this->SendDebug('The Program Endpoint', $endpoint, 0);
             return $data['data'];
         }
 
@@ -309,7 +303,7 @@ declare(strict_types=1);
             } else {
                 $data = $states;
             }
-            $this->SendDebug('data', json_encode($data), 0);
+            $this->SendDebug('States', json_encode($data), 0);
             if (isset($data['data']['status'])) {
                 foreach ($data['data']['status'] as $state) {
                     $ident = $this->getLastSnippet($state['key']);
@@ -319,7 +313,6 @@ declare(strict_types=1);
                         continue;
                     }
                     $value = $state['value'];
-                    $this->SendDebug('Variable', $state['key'], 0);
 
                     $profileName = str_replace('BSH', 'HomeConnect', $state['key']);
                     $variableType = $this->getVariableType($value);
@@ -344,7 +337,6 @@ declare(strict_types=1);
                     $variableDisplayName = isset($state['name']) ? $state['name'] : $this->splitCamelCase($ident);
                     $this->MaintainVariable($ident, $variableDisplayName, $variableType, $profileName, 0, true);
                     $this->SetValue($ident, $value);
-                    $this->SendDebug($ident, $value, 0);
                 }
             }
         }
@@ -357,7 +349,6 @@ declare(strict_types=1);
                 }
             }
             IPS_SetVariableProfileAssociation($profileName, $value, $name, '', -1);
-            $this->SendDebug('Added Association', $name, 0);
         }
 
         private function getLastSnippet($string)
@@ -395,6 +386,7 @@ declare(strict_types=1);
         private function setupSettings()
         {
             $allSettings = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/settings'), true);
+            $this->SendDebug('Settings', json_encode($allSettings), 0);
             if (isset($allSettings['data']['settings'])) {
                 $availableSettings = json_decode($this->ReadAttributeString('Settings'), true);
                 $position = 0;
