@@ -79,8 +79,6 @@ class HomeConnectCoffeeMakerBaseTest extends TestCase
         IPS_ApplyChanges($coffeMaker);
         $intf = IPS\InstanceManager::getInstanceInterface($coffeMaker);
         $this->assertEquals(self::COFFEE, $this->getChildrenValues($coffeMaker));
-        $sse = json_decode(file_get_contents(__DIR__ . '/sse.json'), true);
-        $event = $this->buildEvent($sse[11]);
         $cloudInterface->selectedProgram = 'Espresso';
         $intf->ReceiveData(json_encode(['Buffer' => '3b7
         data: {"items":[{"timestamp":1618480503,"handling":"none","uri":"/api/homeappliances/SIEMENS-TI9575X1DE-68A40E251CAD/programs/selected","key":"BSH.Common.Root.SelectedProgram","value":"ConsumerProducts.CoffeeMaker.Program.Beverage.Espresso","level":"hint"},{"timestamp":1618480503,"handling":"none","uri":"/api/homeappliances/SIEMENS-TI9575X1DE-68A40E251CAD/programs/selected/options/ConsumerProducts.CoffeeMaker.Option.CoffeeTemperature","key":"ConsumerProducts.CoffeeMaker.Option.CoffeeTemperature","value":"ConsumerProducts.CoffeeMaker.EnumType.CoffeeTemperature.92C","level":"hint"},{"timestamp":1618480503,"handling":"none","uri":"/api/homeappliances/SIEMENS-TI9575X1DE-68A40E251CAD/programs/selected/options/ConsumerProducts.CoffeeMaker.Option.FillQuantity","key":"ConsumerProducts.CoffeeMaker.Option.FillQuantity","unit":"ml","value":40,"level":"hint"}],"haId":"SIEMENS-TI9575X1DE-68A40E251CAD"}
