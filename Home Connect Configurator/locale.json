@@ -7,7 +7,12 @@
             "Connected": "Verbunden",
             "Yes": "Ja",
             "No": "Nein",
-            "Configurator": "Konfigurator"
+            "Configurator": "Konfigurator",
+            "Dryer": "Trockner",
+            "Oven": "Backofen",
+            "CoffeMaker": "Kaffeemaschiene",
+            "WasherDryer": "Waschtrockner",
+            "Dishwasher": "Geschirrspüler"
         }
     }
 }

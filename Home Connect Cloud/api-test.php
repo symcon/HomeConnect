@@ -5,38 +5,31 @@ declare(strict_types=1);
 if (defined('PHPUNIT_TESTSUITE')) {
     trait TestAPI
     {
-        public $selectedProgram = 'Coffee';
-
-        public function GetTestSelected() {
-            // return $this->selectedProgram;
-            return 'RETURN';
-        }
+        public $selectedProgram = '';
 
         public function getRequest(string $endpoint)
         {
-            switch($endpoint) {
-                case 'homeappliances/SIEMENS-TI9575X1DE-68A40E251CAD/programs/selected':
-                    return file_get_contents(__DIR__ . '/../tests/' . $endpoint . '/' . $this->selectedProgram . '.json');
-                
-                default:
-                    return file_get_contents(__DIR__ . '/../tests/' . $endpoint . '/response.json');
+            preg_match('/homeappliances\/.+\/programs\/selected/', $endpoint, $matches);
+            if ($matches) {
+                return file_get_contents(__DIR__ . '/../tests/' . $endpoint . '/' . $this->selectedProgram . '.json');
             }
+            return file_get_contents(__DIR__ . '/../tests/' . $endpoint . '/response.json');
         }
 
         public function putRequest(string $endpoint, string $payload)
         {
-            switch($endpoint) {
-                case 'homeappliances/SIEMENS-TI9575X1DE-68A40E251CAD/programs/selected';
-                    preg_match('/.+\.(.+)/m', json_decode($payload, true)['data']['key'], $matches);
-                    if ($matches) {
-                        $this->selectedProgram = $matches[1];
-                    }
+            preg_match('/homeappliances\/.+\/programs\/selected/', $endpoint, $matches);
+            if ($matches) {
+                preg_match('/.+\.(.+)/m', json_decode($payload, true)['data']['key'], $matches);
+                if ($matches) {
+                    $this->selectedProgram = $matches[1];
+                }
+                return '';
             }
-            return '';
         }
 
-        public function retrieveAccessToken() {
-
+        public function retrieveAccessToken()
+        {
         }
     }
 } else {
