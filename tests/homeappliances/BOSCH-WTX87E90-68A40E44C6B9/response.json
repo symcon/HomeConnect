@@ -1,0 +1,15 @@
+{
+    "data": {
+      "homeappliances": [
+        {
+          "name": "Trockner",
+          "brand": "Bosch",
+          "vib": "WTX87E90",
+          "connected": true,
+          "type": "Dryer",
+          "enumber": "WTX87E90/03",
+          "haId": "BOSCH-WTX87E90-68A40E44C6B9"
+        }
+      ]
+    }
+  }

@@ -1,0 +1,31 @@
+{
+    "data": {
+      "key": "LaundryCare.Dryer.Program.TimeCold",
+      "options": [
+        {
+          "key": "BSH.Common.Option.Duration",
+          "value": 1200,
+          "unit": "seconds",
+          "name": "Dauer anpassen"
+        },
+        {
+          "key": "BSH.Common.Option.FinishInRelative",
+          "value": 1200,
+          "unit": "seconds",
+          "name": "Zeitversetzter Betrieb"
+        },
+        {
+          "key": "LaundryCare.Dryer.Option.ConnectedDry.OriginalProgramTime",
+          "value": 13200,
+          "unit": "seconds"
+        },
+        {
+          "key": "LaundryCare.Dryer.Option.WrinkleGuard",
+          "value": "LaundryCare.Dryer.EnumType.WrinkleGuard.Min60",
+          "name": "Knitterschutz",
+          "displayvalue": "60 min"
+        }
+      ],
+      "name": "Zeitprogramm kalt"
+    }
+  }

@@ -1,0 +1,26 @@
+{
+    "data": {
+      "key": "LaundryCare.Dryer.Program.Cotton",
+      "options": [
+        {
+          "key": "LaundryCare.Dryer.Option.DryingTarget",
+          "type": "LaundryCare.Dryer.EnumType.DryingTarget",
+          "constraints": {
+            "allowedvalues": [
+              "LaundryCare.Dryer.EnumType.DryingTarget.IronDry",
+              "LaundryCare.Dryer.EnumType.DryingTarget.CupboardDry",
+              "LaundryCare.Dryer.EnumType.DryingTarget.CupboardDryPlus"
+            ],
+            "displayvalues": [
+              "Bügeltrocken",
+              "Schranktrocken",
+              "Schranktrocken Extra"
+            ],
+            "liveupdate": true
+          },
+          "name": "Trockenziel"
+        }
+      ],
+      "name": "Baumwolle"
+    }
+  }

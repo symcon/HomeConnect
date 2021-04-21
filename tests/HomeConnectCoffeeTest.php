@@ -10,28 +10,28 @@ include_once __DIR__ . '/stubs/MessageStubs.php';
 
 use PHPUnit\Framework\TestCase;
 
-class HomeConnectBaseTest extends TestCase
+class HomeConnectCoffeeMakerBaseTest extends TestCase
 {
     const COFFEE = [
-        'OperationState'   => 'Bereit',
-        'DoorState'        => 'Geschlossen',
-        'PowerState'       => 'An',
-        'SelectedProgram'  => 'Caffe Crema',
-        'CoffeeTemperature'=> '90°C',
-        'BeanAmount'       => 'Stark +',
-        'FillQuantity'     => '120 ml',
-        'Control'          => 'Start'
+        'OperationState'         => 'Bereit',
+        'DoorState'              => 'Geschlossen',
+        'PowerState'             => 'An',
+        'SelectedProgram'        => 'Caffe Crema',
+        'OptionCoffeeTemperature'=> '90°C',
+        'OptionBeanAmount'       => 'Stark +',
+        'OptionFillQuantity'     => '120 ml',
+        'Control'                => 'Start'
     ];
 
     const ESPRESSO = [
-        'OperationState'    => 'Bereit',
-        'DoorState'         => 'Geschlossen',
-        'PowerState'        => 'An',
-        'SelectedProgram'   => 'Espresso',
-        'CoffeeTemperature' => '92°C',
-        'BeanAmount'        => 'Sehr stark',
-        'FillQuantity'      => '40 ml',
-        'Control'           => 'Start'
+        'OperationState'          => 'Bereit',
+        'DoorState'               => 'Geschlossen',
+        'PowerState'              => 'An',
+        'SelectedProgram'         => 'Espresso',
+        'OptionCoffeeTemperature' => '92°C',
+        'OptionBeanAmount'        => 'Sehr stark',
+        'OptionFillQuantity'      => '40 ml',
+        'Control'                 => 'Start'
     ];
 
     protected function setUp(): void
@@ -55,12 +55,15 @@ class HomeConnectBaseTest extends TestCase
 
     public function testBaseFunctionality()
     {
+        $cloudInterface = IPS\InstanceManager::getInstanceInterface(IPS_GetInstanceListByModuleID('{CE76810D-B685-9BE0-CC04-38B204DEAD5E}')[0]);
+        $cloudInterface->selectedProgram = 'Coffee';
+        $coffeMaker = IPS_CreateInstance('{F29DF312-A62E-9989-1F1A-0D1E1D171AD3}');
+        $intf = IPS\InstanceManager::getInstanceInterface($coffeMaker);
         $coffeMaker = IPS_CreateInstance('{F29DF312-A62E-9989-1F1A-0D1E1D171AD3}');
         IPS_SetProperty($coffeMaker, 'HaID', 'SIEMENS-TI9575X1DE-68A40E251CAD');
         IPS_SetProperty($coffeMaker, 'DeviceType', 'CoffeMaker');
         IPS_ApplyChanges($coffeMaker);
         $intf = IPS\InstanceManager::getInstanceInterface($coffeMaker);
-        $this->assertTrue(true);
         $this->assertEquals(self::COFFEE, $this->getChildrenValues($coffeMaker));
         $intf->RequestAction('SelectedProgram', 'ConsumerProducts.CoffeeMaker.Program.Beverage.Espresso');
         $this->assertEquals(self::ESPRESSO, $this->getChildrenValues($coffeMaker));
@@ -68,24 +71,22 @@ class HomeConnectBaseTest extends TestCase
 
     public function testBaseFunctionalityEvents()
     {
+        $cloudInterface = IPS\InstanceManager::getInstanceInterface(IPS_GetInstanceListByModuleID('{CE76810D-B685-9BE0-CC04-38B204DEAD5E}')[0]);
+        $cloudInterface->selectedProgram = 'Coffee';
         $coffeMaker = IPS_CreateInstance('{F29DF312-A62E-9989-1F1A-0D1E1D171AD3}');
         IPS_SetProperty($coffeMaker, 'HaID', 'SIEMENS-TI9575X1DE-68A40E251CAD');
         IPS_SetProperty($coffeMaker, 'DeviceType', 'CoffeMaker');
         IPS_ApplyChanges($coffeMaker);
         $intf = IPS\InstanceManager::getInstanceInterface($coffeMaker);
-        $this->assertTrue(true);
-        $this->displayChildrenValues($coffeMaker);
         $this->assertEquals(self::COFFEE, $this->getChildrenValues($coffeMaker));
         $sse = json_decode(file_get_contents(__DIR__ . '/sse.json'), true);
         $event = $this->buildEvent($sse[11]);
-        $cloudInterface = IPS\InstanceManager::getInstanceInterface(IPS_GetInstanceListByModuleID('{CE76810D-B685-9BE0-CC04-38B204DEAD5E}')[0]);
         $cloudInterface->selectedProgram = 'Espresso';
         $intf->ReceiveData(json_encode(['Buffer' => '3b7
         data: {"items":[{"timestamp":1618480503,"handling":"none","uri":"/api/homeappliances/SIEMENS-TI9575X1DE-68A40E251CAD/programs/selected","key":"BSH.Common.Root.SelectedProgram","value":"ConsumerProducts.CoffeeMaker.Program.Beverage.Espresso","level":"hint"},{"timestamp":1618480503,"handling":"none","uri":"/api/homeappliances/SIEMENS-TI9575X1DE-68A40E251CAD/programs/selected/options/ConsumerProducts.CoffeeMaker.Option.CoffeeTemperature","key":"ConsumerProducts.CoffeeMaker.Option.CoffeeTemperature","value":"ConsumerProducts.CoffeeMaker.EnumType.CoffeeTemperature.92C","level":"hint"},{"timestamp":1618480503,"handling":"none","uri":"/api/homeappliances/SIEMENS-TI9575X1DE-68A40E251CAD/programs/selected/options/ConsumerProducts.CoffeeMaker.Option.FillQuantity","key":"ConsumerProducts.CoffeeMaker.Option.FillQuantity","unit":"ml","value":40,"level":"hint"}],"haId":"SIEMENS-TI9575X1DE-68A40E251CAD"}
         event: NOTIFY
         id: SIEMENS-TI9575X1DE-68A40E251CAD']));
         $this->assertEquals(self::ESPRESSO, $this->getChildrenValues($coffeMaker));
-        $this->displayChildrenValues($coffeMaker);
     }
 
     private function displayChildrenValues($id)
