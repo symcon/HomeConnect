@@ -98,19 +98,6 @@ declare(strict_types=1);
             IPS_ApplyChanges($parent);
         }
 
-        public function GetConfigurationForParent()
-        {
-            return json_encode([
-                'URL'    => '',
-                'Header' => [
-                    [
-                        'Name'  => '',
-                        'Value' => ''
-                    ]
-                ]
-            ]);
-        }
-
         /**
          * This function will be called by the OAuth control. Visibility should be protected!
          */
