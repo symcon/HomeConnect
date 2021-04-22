@@ -3,12 +3,8 @@
         {
             "type": "ValidationTextBox",
             "caption" :"HaID",
-            "name": "HaID"
-        },
-        {
-            "type": "ValidationTextBox",
-            "caption": "DeviceType",
-            "name": "DeviceType"
+            "name": "HaID",
+            "enabled": false
         }
     ],
     "actions": [],

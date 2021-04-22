@@ -13,21 +13,27 @@ use PHPUnit\Framework\TestCase;
 class HomeConnectDryerBaseTest extends TestCase
 {
     const COTTON = [
-        'DoorState'         => 'Geschlossen',
-        'OperationState'    => 'Bereit',
-        'PowerState'        => 'An',
-        'SelectedProgram'   => 'Baumwolle',
-        'OptionDryingTarget'=> 'Schranktrocken',
-        'Control'           => 'Start'
+        'DoorState'                 => 'Geschlossen',
+        'OperationState'            => 'Bereit',
+        'PowerState'                => 'An',
+        'SelectedProgram'           => 'Baumwolle',
+        'OptionDryingTarget'        => 'Schranktrocken',
+        'Control'                   => 'Start',
+        'LocalControlActive'        => 'No',
+        'RemoteControlActive'       => 'Yes',
+        'RemoteControlStartAllowed' => 'Yes'
     ];
 
     const TIME_COLD = [
-        'OperationState'    => 'Bereit',
-        'DoorState'         => 'Geschlossen',
-        'PowerState'        => 'An',
-        'SelectedProgram'   => 'Zeitprogramm kalt',
-        'OptionDuration'    => '1200 seconds',
-        'Control'           => 'Start'
+        'OperationState'            => 'Bereit',
+        'DoorState'                 => 'Geschlossen',
+        'PowerState'                => 'An',
+        'SelectedProgram'           => 'Zeitprogramm kalt',
+        'OptionDuration'            => '1200 seconds',
+        'Control'                   => 'Start',
+        'LocalControlActive'        => 'No',
+        'RemoteControlActive'       => 'Yes',
+        'RemoteControlStartAllowed' => 'Yes'
     ];
 
     protected function setUp(): void

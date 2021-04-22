@@ -9,7 +9,20 @@
             "Remote start not allowed": "Fernstart nicht erlaubt",
             "ProgramProgress": "Programmfortschritt",
             "RemainingProgramTime": "Verbleibende Laufzeit",
-            "Seconds": "Sekunden"
+            "Seconds": "Sekunden",
+            "Yes": "Ja",
+            "No": "Nein",
+            "Inactive": "Inaktiv",
+            "Ready": "Bereit",
+            "Delayed Start" :"Verzögerter Start",
+            "Run": "Läuft",
+            "Action Required": "Aktion erforderlich",
+            "Finished": "Fertig",
+            "Error": "Fehler",
+            "Aborting": "Abbrechen",
+            "Open": "Offen",
+            "Closed": "Geschlossen",
+            "Locked": "Verriegelt"
         }
     }
 }

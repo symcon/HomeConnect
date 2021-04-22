@@ -13,25 +13,29 @@ use PHPUnit\Framework\TestCase;
 class HomeConnectCoffeeMakerBaseTest extends TestCase
 {
     const COFFEE = [
-        'OperationState'         => 'Bereit',
-        'DoorState'              => 'Geschlossen',
-        'PowerState'             => 'An',
-        'SelectedProgram'        => 'Caffe Crema',
-        'OptionCoffeeTemperature'=> '90°C',
-        'OptionBeanAmount'       => 'Stark +',
-        'OptionFillQuantity'     => '120 ml',
-        'Control'                => 'Start'
+        'OperationState'            => 'Bereit',
+        'DoorState'                 => 'Geschlossen',
+        'PowerState'                => 'An',
+        'SelectedProgram'           => 'Caffe Crema',
+        'OptionCoffeeTemperature'   => '90°C',
+        'OptionBeanAmount'          => 'Stark +',
+        'OptionFillQuantity'        => '120 ml',
+        'Control'                   => 'Start',
+        'RemoteControlStartAllowed' => 'Yes',
+        'LocalControlActive'        => 'No'
     ];
 
     const ESPRESSO = [
-        'OperationState'          => 'Bereit',
-        'DoorState'               => 'Geschlossen',
-        'PowerState'              => 'An',
-        'SelectedProgram'         => 'Espresso',
-        'OptionCoffeeTemperature' => '92°C',
-        'OptionBeanAmount'        => 'Sehr stark',
-        'OptionFillQuantity'      => '40 ml',
-        'Control'                 => 'Start'
+        'OperationState'            => 'Bereit',
+        'DoorState'                 => 'Geschlossen',
+        'PowerState'                => 'An',
+        'SelectedProgram'           => 'Espresso',
+        'OptionCoffeeTemperature'   => '92°C',
+        'OptionBeanAmount'          => 'Sehr stark',
+        'OptionFillQuantity'        => '40 ml',
+        'Control'                   => 'Start',
+        'RemoteControlStartAllowed' => 'Yes',
+        'LocalControlActive'        => 'No'
     ];
 
     protected function setUp(): void
