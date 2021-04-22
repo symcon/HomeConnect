@@ -13,8 +13,8 @@ use PHPUnit\Framework\TestCase;
 class HomeConnectCoffeeMakerBaseTest extends TestCase
 {
     const COFFEE = [
-        'OperationState'            => 'Bereit',
-        'DoorState'                 => 'Geschlossen',
+        'OperationState'            => 'Ready',
+        'DoorState'                 => 'Closed',
         'PowerState'                => 'An',
         'SelectedProgram'           => 'Caffe Crema',
         'OptionCoffeeTemperature'   => '90°C',
@@ -26,8 +26,8 @@ class HomeConnectCoffeeMakerBaseTest extends TestCase
     ];
 
     const ESPRESSO = [
-        'OperationState'            => 'Bereit',
-        'DoorState'                 => 'Geschlossen',
+        'OperationState'            => 'Ready',
+        'DoorState'                 => 'Closed',
         'PowerState'                => 'An',
         'SelectedProgram'           => 'Espresso',
         'OptionCoffeeTemperature'   => '92°C',

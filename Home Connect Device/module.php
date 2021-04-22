@@ -35,7 +35,6 @@ declare(strict_types=1);
             $this->RegisterAttributeString('Settings', '[]');
             $this->RegisterAttributeString('OptionKeys', '[]');
 
-
             //Common States
             //States
             if (!IPS_VariableProfileExists('HomeConnect.Common.Status.OperationState')) {
@@ -60,7 +59,6 @@ declare(strict_types=1);
                 ]);
             }
 
-
             //Update Options
             if (!IPS_VariableProfileExists('HomeConnect.Common.Option.ProgramProgress')) {
                 IPS_CreateVariableProfile('HomeConnect.Common.Option.ProgramProgress', VARIABLETYPE_INTEGER);
@@ -77,7 +75,7 @@ declare(strict_types=1);
                 IPS_SetVariableProfileText('HomeConnect.Common.Option.ElapsedProgramTime', '', ' ' . $this->Translate('Seconds'));
             }
 
-            //Restriction 
+            //Restriction
             if (!IPS_VariableProfileExists('HomeConnect.YesNo')) {
                 IPS_CreateVariableProfile('HomeConnect.YesNo', VARIABLETYPE_BOOLEAN);
                 IPS_SetVariableProfileAssociation('HomeConnect.YesNo', true, $this->Translate('Yes'), '', 0);

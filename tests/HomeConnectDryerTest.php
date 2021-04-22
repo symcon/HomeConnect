@@ -13,8 +13,8 @@ use PHPUnit\Framework\TestCase;
 class HomeConnectDryerBaseTest extends TestCase
 {
     const COTTON = [
-        'DoorState'                 => 'Geschlossen',
-        'OperationState'            => 'Bereit',
+        'DoorState'                 => 'Closed',
+        'OperationState'            => 'Ready',
         'PowerState'                => 'An',
         'SelectedProgram'           => 'Baumwolle',
         'OptionDryingTarget'        => 'Schranktrocken',
@@ -25,8 +25,8 @@ class HomeConnectDryerBaseTest extends TestCase
     ];
 
     const TIME_COLD = [
-        'OperationState'            => 'Bereit',
-        'DoorState'                 => 'Geschlossen',
+        'OperationState'            => 'Ready',
+        'DoorState'                 => 'Closed',
         'PowerState'                => 'An',
         'SelectedProgram'           => 'Zeitprogramm kalt',
         'OptionDuration'            => '1200 seconds',
