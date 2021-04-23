@@ -113,19 +113,13 @@ declare(strict_types=1);
 
         public function ReceiveData($String)
         {
-            $rawData = explode("\n", utf8_decode(json_decode($String, true)['Buffer']));
-            $cleanData = [];
-            foreach ($rawData as $entry) {
-                preg_match('/(.*?):[ ]*(.*)/', $entry, $matches);
-                if ($matches) {
-                    $cleanData[preg_replace('/\s+/', '', $matches[1])] = preg_replace('/\s+/', '', $matches[2]);
-                }
-            }
-            switch ($cleanData['event']) {
+            $this->SendDebug('ReceiveData', $String, 0);
+            $data = json_decode($String, true);
+            switch ($data['Event']) {
                 case 'STATUS':
                 case 'NOTIFY':
-                    $items = json_decode($cleanData['data'], true)['items'];
-                    $this->SendDebug($cleanData['event'], json_encode($items), 0);
+                    $items = json_decode($data['Data'], true)['items'];
+                    // $this->SendDebug($cleanData['event'], json_encode($items), 0);
                     foreach ($items as $item) {
                         if (in_array($item['key'], self::EXCLUDE)) {
                             continue;
@@ -167,6 +161,7 @@ declare(strict_types=1);
 
                 case 'EVENT':
                     $this->SendDebug('EVENT', json_encode($cleanData), 0);
+                    break;
 
             }
         }

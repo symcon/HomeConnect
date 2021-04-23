@@ -64,9 +64,9 @@ declare(strict_types=1);
 
         public function ReceiveData($JSONString)
         {
-            $data = json_decode($JSONString);
-            $payload = $data->Buffer;
-            $this->SendDataToChildren(json_encode(['DataID' => '{173D59E5-F949-1C1B-9B34-671217C07B0E}', 'Buffer' => $payload]));
+            $data = json_decode($JSONString, true);
+            $data['DataID'] = '{173D59E5-F949-1C1B-9B34-671217C07B0E}';
+            $this->SendDataToChildren(json_encode($data));
         }
 
         public function MessageSink($Timestamp, $SenderID, $MessageID, $Data)
@@ -96,6 +96,17 @@ declare(strict_types=1);
             IPS_SetProperty($parent, 'URL', $url);
             IPS_SetProperty($parent, 'Headers', json_encode([['Name' => 'Authorization', 'Value' => 'Bearer ' . $this->FetchAccessToken()]]));
             IPS_ApplyChanges($parent);
+        }
+
+        public function GetConfigurationForParent()
+        {
+            $parent = IPS_GetInstance($this->InstanceID)['ConnectionID'];
+            $url = IPS_GetProperty($parent, 'URL');
+            $header = IPS_GetProperty($parent, 'Headers');
+            return json_encode([
+                'URL'     => $url ? $url : '',
+                'Headers' => $header ? $header : []
+            ]);
         }
 
         /**
