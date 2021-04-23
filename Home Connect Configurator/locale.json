@@ -10,9 +10,11 @@
             "Configurator": "Konfigurator",
             "Dryer": "Trockner",
             "Oven": "Backofen",
-            "CoffeMaker": "Kaffeemaschiene",
+            "CoffeeMaker": "Kaffeemaschiene",
             "WasherDryer": "Waschtrockner",
-            "Dishwasher": "Geschirrspüler"
+            "Dishwasher": "Geschirrspüler",
+            "FridgeFreezer": "Kühl-Gefrierkombination",
+            "Washer": "Waschmaschiene"
         }
     }
 }
