@@ -583,8 +583,10 @@ declare(strict_types=1);
                         IPS_CreateVariableProfile($profileName, $variableType);
                     }
                     IPS_SetVariableProfileText($profileName, '', ' ' . $data['unit']);
-                    IPS_SetVariableProfileValues($profileName, $constraints['min'], $constraints['max'], isset($constraints['stepsize']) ? $constraints['stepsize'] : 1);
-                    $this->SendDebug('UpdatedProfile', $constraints['min'] . ' - ' . $constraints['max'], 0);
+                    $min = isset($constraints['min']) ? $constraints['min'] : 0;
+                    $max = isset($constraints['max']) ? $constraints['max'] : 86340;
+                    IPS_SetVariableProfileValues($profileName, $min, $max, isset($constraints['stepsize']) ? $constraints['stepsize'] : 1);
+                    $this->SendDebug('UpdatedProfile', $min . ' - ' . $max, 0);
                     break;
 
                 case VARIABLETYPE_BOOLEAN:
