@@ -22,7 +22,8 @@ class HomeConnectCoffeeMakerBaseTest extends TestCase
         'OptionFillQuantity'        => '120 ml',
         'Control'                   => 'Start',
         'RemoteControlStartAllowed' => 'Yes',
-        'LocalControlActive'        => 'No'
+        'LocalControlActive'        => 'No',
+        'Event'                     => '-'
     ];
 
     const ESPRESSO = [
@@ -35,7 +36,8 @@ class HomeConnectCoffeeMakerBaseTest extends TestCase
         'OptionFillQuantity'        => '40 ml',
         'Control'                   => 'Start',
         'RemoteControlStartAllowed' => 'Yes',
-        'LocalControlActive'        => 'No'
+        'LocalControlActive'        => 'No',
+        'Event'                     => '-'
     ];
 
     protected function setUp(): void
