@@ -306,9 +306,6 @@ declare(strict_types=1);
                 }
             }
             foreach ($programs as $program) {
-                if (!$program['constraints']['available']) {
-                    continue;
-                }
                 preg_match('/(?P<program>.+)\.(?P<value>.+)/m', $program['key'], $matches);
                 $displayName = isset($program['name']) ? $program['name'] : $matches['value'];
                 IPS_SetVariableProfileAssociation($profileName, $program['key'], $displayName, '', -1);
