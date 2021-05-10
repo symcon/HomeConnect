@@ -22,7 +22,21 @@
             "Aborting": "Abbrechen",
             "Open": "Offen",
             "Closed": "Geschlossen",
-            "Locked": "Verriegelt"
+            "Locked": "Verriegelt",
+            "Event": "Ereignis",
+            "Program Finished": "Program fertig",
+            "Program Aborted": "Program abgebrochen",
+            "Alarm Clock Elapsed": "Alarm abgelaufen",
+            "Pre-heat Finished": "Vorheizen fertig",
+            "Bean Container Empty": "Bohnenbehälter leer",
+            "Water Tank Empty": "Wassertank leer",
+            "Drip Tray Full": "Tropfschale voll",
+            "Door Alarm Freezer": "Türalarm Gefrierschrank",
+            "Door Alarm Refrigerator": "Türalarm Kühlschrank",
+            "Temperature Alarm Freezer": "Temperaturalarm Gefrierschrank",
+            "Empty Dust Box and Clean Filter": "Staubkasten entleeren und Filter reinigen",
+            "Robot is Stuck": "Roboter steckt fest",
+            "Docking Station not Found": "Dockingstation nicht gefunden"
         }
     }
 }

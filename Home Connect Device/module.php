@@ -79,6 +79,26 @@ declare(strict_types=1);
                 IPS_SetVariableProfileAssociation('HomeConnect.YesNo', true, $this->Translate('Yes'), '', 0);
                 IPS_SetVariableProfileAssociation('HomeConnect.YesNo', false, $this->Translate('No'), '', 0);
             }
+
+            //Events
+            if (!IPS_VariableProfileExists('HomeConnect.Event')) {
+                IPS_CreateVariableProfile('HomeConnect.Event', VARIABLETYPE_STRING);
+                $this->createAssociations('HomeConnect.Event', [
+                    ['Value' => 'BSH.Common.Event.ProgramAborted', 'Name' => 'Program Aborted'],
+                    ['Value' => 'BSH.Common.Event.ProgramFinished', 'Name' => 'Program Finished'],
+                    ['Value' => 'BSH.Common.BSH.Common.Event.AlarmClockElapsed', 'Name' => 'Alarm Clock Elapsed'],
+                    ['Value' => 'BSH.Common.Event.PreheadFinished', 'Name' => 'Pre-heat Finished'],
+                    ['Value' => 'ConsumerProducts.CoffeeMaker.Event.BeanContainerEmpty', 'Name' => 'Bean Container Empty'],
+                    ['Value' => 'ConsumerProducts.CoffeeMaker.Event.WaterTankEmpty', 'Name' => 'Water Tank Empty'],
+                    ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DripTrayFull', 'Name' => 'Drip Tray Full'],
+                    ['Value' => 'Refrigeration.FridgeFreezer.Event.DoorAlarmFreezer', 'Name' => 'Door Alarm Freezer'],
+                    ['Value' => 'Refrigeration.FridgeFreezer.Event.DoorAlarmRefrigerator', 'Name' => 'Door Alarm Refrigerator'],
+                    ['Value' => 'Refrigeration.FridgeFreezer.Event.TemperatureAlarmFreezer', 'Name' => 'Temperature Alarm Freezer'],
+                    ['Value' => 'ConsumerProducts.CleaningRobot.Event.EmptyDustBoxAndCleanFilter', 'Name' => 'Empty Dust Box and Clean Filter'],
+                    ['Value' => 'ConsumerProducts.CleaningRobot.Event.RobotIsStuck', 'Name' => 'Robot is Stuck'],
+                    ['Value' => 'ConsumerProducts.CleaningRobot.Event.DockingStationNotFound', 'Name' => 'Docking Station not Found'],
+                ]);
+            }
         }
 
         public function Destroy()
@@ -96,13 +116,15 @@ declare(strict_types=1);
                 if ($this->HasActiveParent()) {
                     if ($this->ReadPropertyString('HaID')) {
                         $this->SetSummary($this->ReadPropertyString('HaID'));
-                        $this->createStates();
-                        $this->setupSettings();
-                        if ($this->createPrograms()) {
-                            //If the device is inactive, we cannot retrieve information about the current selected Program
-                            if (@IPS_GetObjectIDByIdent('OperationState', $this->InstanceID) && ($this->GetValue('OperationState') != 'BSH.Common.EnumType.OperationState.Inactive')) {
-                                $this->updateOptionValues($this->getSelectedProgram());
+                        if ($this->createStates()) {
+                            $this->setupSettings();
+                            if ($this->createPrograms()) {
+                                //If the device is inactive, we cannot retrieve information about the current selected Program
+                                if (@IPS_GetObjectIDByIdent('OperationState', $this->InstanceID) && ($this->GetValue('OperationState') != 'BSH.Common.EnumType.OperationState.Inactive')) {
+                                    $this->updateOptionValues($this->getSelectedProgram());
+                                }
                             }
+                            $this->MaintainVariable('Event', $this->Translate('Event'), VARIABLETYPE_STRING, 'HomeConnect.Event', 0, true);
                         }
                     }
                 }
@@ -160,7 +182,14 @@ declare(strict_types=1);
                     break;
 
                 case 'EVENT':
-                    $this->SendDebug('EVENT', json_encode($cleanData), 0);
+                    $eventData = json_decode($data['Data'], true);
+                    foreach ($eventData['items'] as $item) {
+                        if ($item['value'] == 'BSH.Common.EnumType.EventPresentState.Present') {
+                            $this->SetValue('Event', $item['key']);
+                        } else {
+                            $this->SetValue('Event', '');
+                        }
+                    }
                     break;
 
             }
@@ -261,7 +290,7 @@ declare(strict_types=1);
 
         private function createPrograms()
         {
-            $rawPrograms = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/available'), true);
+            $rawPrograms = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs'), true);
             if (isset($rawPrograms['error'])) {
                 return;
             }
@@ -277,6 +306,9 @@ declare(strict_types=1);
                 }
             }
             foreach ($programs as $program) {
+                if (!$program['constraints']['available']) {
+                    continue;
+                }
                 preg_match('/(?P<program>.+)\.(?P<value>.+)/m', $program['key'], $matches);
                 $displayName = isset($program['name']) ? $program['name'] : $matches['value'];
                 IPS_SetVariableProfileAssociation($profileName, $program['key'], $displayName, '', -1);
@@ -393,6 +425,9 @@ declare(strict_types=1);
         {
             if (!$states) {
                 $data = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/status'), true);
+                if (isset($data['error'])) {
+                    return false;
+                }
             } else {
                 $data = $states;
             }
@@ -431,6 +466,7 @@ declare(strict_types=1);
                     $this->MaintainVariable($ident, $variableDisplayName, $variableType, $profileName, 0, true);
                     $this->SetValue($ident, $value);
                 }
+                return true;
             }
         }
 
