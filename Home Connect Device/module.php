@@ -20,6 +20,23 @@ declare(strict_types=1);
             'BSH.Common.Option.ElapsedProgramTime'
         ];
 
+        const EVENT_DESCRIPTIONS = [
+            'BSH.Common.Event.ProgramAborted'                                 => 'The program was aborted',
+            'BSH.Common.Event.ProgramFinished'                                => 'The program is finished',
+            'BSH.Common.Event.AlarmClockElapsed'                              => 'The alarm clock has elapsed',
+            'Cooking.Oven.Event.PreheatFinished'                              => 'The preheating phase is finished',
+            'ConsumerProducts.CoffeeMaker.Event.BeanContainerEmpty'           => 'Please fill bean container',
+            'ConsumerProducts.CoffeeMaker.Event.WaterTankEmpty'               => 'Please fill water tank',
+            'ConsumerProducts.CoffeeMaker.Event.DripTrayFull'                 => 'Please empty drip tray',
+            'Refrigeration.FridgeFreezer.Event.DoorAlarmFreezer'              => 'Please close door',
+            'Refrigeration.FridgeFreezer.Event.DoorAlarmRefrigerator'         => 'Please close door',
+            'Refrigeration.FridgeFreezer.Event.TemperatureAlarmFreezer'       => 'The freezer temperature is too high',
+            'ConsumerProducts.CleaningRobot.Event.EmptyDustBoxAndCleanFilter' => 'Please empty the dust box and clean the filter',
+            'ConsumerProducts.CleaningRobot.Event.RobotIsStuck'               => 'The robot cannot continue  it\'s run',
+            'ConsumerProducts.CleaningRobot.Event.DockingStationNotFound'     => 'The robot cannot find the charging station'
+
+        ];
+
         public function Create()
         {
             //Never delete this line!
@@ -79,26 +96,6 @@ declare(strict_types=1);
                 IPS_SetVariableProfileAssociation('HomeConnect.YesNo', true, $this->Translate('Yes'), '', 0);
                 IPS_SetVariableProfileAssociation('HomeConnect.YesNo', false, $this->Translate('No'), '', 0);
             }
-
-            //Events
-            if (!IPS_VariableProfileExists('HomeConnect.Event')) {
-                IPS_CreateVariableProfile('HomeConnect.Event', VARIABLETYPE_STRING);
-                $this->createAssociations('HomeConnect.Event', [
-                    ['Value' => 'BSH.Common.Event.ProgramAborted', 'Name' => 'Program Aborted'],
-                    ['Value' => 'BSH.Common.Event.ProgramFinished', 'Name' => 'Program Finished'],
-                    ['Value' => 'BSH.Common.BSH.Common.Event.AlarmClockElapsed', 'Name' => 'Alarm Clock Elapsed'],
-                    ['Value' => 'BSH.Common.Event.PreheadFinished', 'Name' => 'Pre-heat Finished'],
-                    ['Value' => 'ConsumerProducts.CoffeeMaker.Event.BeanContainerEmpty', 'Name' => 'Bean Container Empty'],
-                    ['Value' => 'ConsumerProducts.CoffeeMaker.Event.WaterTankEmpty', 'Name' => 'Water Tank Empty'],
-                    ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DripTrayFull', 'Name' => 'Drip Tray Full'],
-                    ['Value' => 'Refrigeration.FridgeFreezer.Event.DoorAlarmFreezer', 'Name' => 'Door Alarm Freezer'],
-                    ['Value' => 'Refrigeration.FridgeFreezer.Event.DoorAlarmRefrigerator', 'Name' => 'Door Alarm Refrigerator'],
-                    ['Value' => 'Refrigeration.FridgeFreezer.Event.TemperatureAlarmFreezer', 'Name' => 'Temperature Alarm Freezer'],
-                    ['Value' => 'ConsumerProducts.CleaningRobot.Event.EmptyDustBoxAndCleanFilter', 'Name' => 'Empty Dust Box and Clean Filter'],
-                    ['Value' => 'ConsumerProducts.CleaningRobot.Event.RobotIsStuck', 'Name' => 'Robot is Stuck'],
-                    ['Value' => 'ConsumerProducts.CleaningRobot.Event.DockingStationNotFound', 'Name' => 'Docking Station not Found'],
-                ]);
-            }
         }
 
         public function Destroy()
@@ -120,11 +117,13 @@ declare(strict_types=1);
                             $this->setupSettings();
                             if ($this->createPrograms()) {
                                 //If the device is inactive, we cannot retrieve information about the current selected Program
-                                if (@IPS_GetObjectIDByIdent('OperationState', $this->InstanceID) && ($this->GetValue('OperationState') != 'BSH.Common.EnumType.OperationState.Inactive')) {
+                                if (@IPS_GetObjectIDByIdent('OperationState', $this->InstanceID) && ($this->GetValue('OperationState') == 'BSH.Common.EnumType.OperationState.Ready')) {
                                     $this->updateOptionValues($this->getSelectedProgram());
                                 }
                             }
-                            $this->MaintainVariable('Event', $this->Translate('Event'), VARIABLETYPE_STRING, 'HomeConnect.Event', 0, true);
+                            $this->createEventProfile();
+                            $this->MaintainVariable('Event', $this->Translate('Event'), VARIABLETYPE_STRING, 'HomeConnect.Event.' . $this->ReadPropertyString('DeviceType'), 0, true);
+                            $this->MaintainVariable('EventDescription', $this->Translate('Event Description'), VARIABLETYPE_STRING, '', 0, true);
                         }
                     }
                 }
@@ -186,8 +185,14 @@ declare(strict_types=1);
                     foreach ($eventData['items'] as $item) {
                         if ($item['value'] == 'BSH.Common.EnumType.EventPresentState.Present') {
                             $this->SetValue('Event', $item['key']);
+                            $level = $this->Translate($item['level']);
+                            $event = GetValueFormattedEx($this->GetIDForIdent('Event'), $item['key']);
+                            $detailedEvent = isset(self::EVENT_DESCRIPTIONS[$item['key']]) ? $this->Translate(self::EVENT_DESCRIPTIONS[$item['key']]) : '';
+                            $eventDescription = sprintf('%s: %s - %s', $level, $event, $detailedEvent);
+                            $this->SetValue('EventDescription', $eventDescription);
                         } else {
                             $this->SetValue('Event', '');
+                            $this->SetValue('EventDescription', '');
                         }
                     }
                     break;
@@ -535,6 +540,9 @@ declare(strict_types=1);
                     $this->SendDebug('Setting', json_encode($setting), 0);
                     //Create variable accordingly
                     $profileName = str_replace('BSH', 'HomeConnect', $setting['key']);
+                    if ($ident == 'PowerState') {
+                        $profileName .= '.' . $this->ReadPropertyString('DeviceType');
+                    }
                     $variableType = $this->getVariableType($value);
                     $settingDetails = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/settings/' . $setting['key']), true);
                     $this->createVariableFromConstraints($profileName, $settingDetails['data'], 'Setting', $position);
@@ -665,7 +673,13 @@ declare(strict_types=1);
             if (!@IPS_GetObjectIDByIdent($ident, $this->InstanceID)) {
                 $displayName = isset($data['name']) ? $data['name'] : $ident;
                 $this->MaintainVariable($ident, $displayName, $variableType, $profileName, $position, true);
-                $this->EnableAction($ident);
+                if (strpos(strtolower($data['key']), 'setting') != false) {
+                    if (strpos(strtolower($data['constraints']['access']), 'write') != false) {
+                        $this->EnableAction($ident);
+                    }
+                } else {
+                    $this->EnableAction($ident);
+                }
             }
         }
 
@@ -721,5 +735,57 @@ declare(strict_types=1);
                 }
             }
             return $restrictions;
+        }
+
+        private function createEventProfile()
+        {
+            $deviceType = $this->ReadPropertyString('DeviceType');
+            if ($deviceType) {
+                $this->SendDebug('Profile', 'HomeConnect.Event.' . $deviceType, 0);
+                if (!IPS_VariableProfileExists('HomeConnect.Event.' . $deviceType)) {
+                    IPS_CreateVariableProfile('HomeConnect.Event.' . $deviceType, VARIABLETYPE_STRING);
+                    $associations = [];
+                    if (in_array($deviceType, ['Dishwasher', 'CleaningRobot', 'CookProcessor'])) {
+                        $associations[] = ['Value' => 'BSH.Common.Event.ProgramAborted', 'Name' => 'Program Aborted'];
+                    }
+                    if (in_array($deviceType, ['Oven', 'Dishwasher', 'Washer', 'Dryer', 'WasherDryer', 'Cooktop', 'Hood', 'CleaningRobot', 'CookProcessor'])) {
+                        $associations[] = ['Value' => 'BSH.Common.Event.ProgramFinished', 'Name' => 'Program Finished'];
+                    }
+                    if (in_array($deviceType, ['Oven',  'Cooktop'])) {
+                        $associations[] = ['Value' => 'BSH.Common.Event.AlarmClockElapsed', 'Name' => 'Alarm Clock Elapsed'];
+                    }
+                    if (in_array($deviceType, ['Oven',  'Cooktop'])) {
+                        $associations[] = ['Value' => 'BSH.Common.Event.PreheatFinished', 'Name' => 'Pre-heat Finished'];
+                    }
+                    if (in_array($deviceType, ['CoffeeMaker'])) {
+                        $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.BeanContainerEmpty', 'Name' => 'Bean Container Empty'];
+                    }
+                    if (in_array($deviceType, ['CoffeeMaker'])) {
+                        $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.WaterTankEmpty', 'Name' => 'Water Tank Empty'];
+                    }
+                    if (in_array($deviceType, ['CoffeeMaker'])) {
+                        $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DripTrayFull', 'Name' => 'Drip Tray Full'];
+                    }
+                    if (in_array($deviceType, ['FridgeFreezer', 'Freezer'])) {
+                        $associations[] = ['Value' => 'Refrigeration.FridgeFreezer.Event.DoorAlarmFreezer', 'Name' => 'Door Alarm Freezer'];
+                    }
+                    if (in_array($deviceType, ['FridgeFreezer', 'Refrigerator'])) {
+                        $associations[] = ['Value' => 'Refrigeration.FridgeFreezer.Event.DoorAlarmRefrigerator', 'Name' => 'Door Alarm Refrigerator'];
+                    }
+                    if (in_array($deviceType, ['FridgeFreezer', 'Freezer'])) {
+                        $associations[] = ['Value' => 'Refrigeration.FridgeFreezer.Event.TemperatureAlarmFreezer', 'Name' => 'Temperature Alarm Freezer'];
+                    }
+                    if (in_array($deviceType, ['CleaningRobot'])) {
+                        $associations[] = ['Value' => 'ConsumerProducts.CleaningRobot.Event.EmptyDustBoxAndCleanFilter', 'Name' => 'Empty Dust Box and Clean Filter'];
+                    }
+                    if (in_array($deviceType, ['CleaningRobot'])) {
+                        $associations[] = ['Value' => 'ConsumerProducts.CleaningRobot.Event.RobotIsStuck', 'Name' => 'Robot is Stuck'];
+                    }
+                    if (in_array($deviceType, ['CleaningRobot'])) {
+                        $associations[] = ['Value' => 'ConsumerProducts.CleaningRobot.Event.DockingStationNotFound', 'Name' => 'Docking Station not Found'];
+                    }
+                    $this->createAssociations('HomeConnect.Event.' . $deviceType, $associations);
+                }
+            }
         }
     }

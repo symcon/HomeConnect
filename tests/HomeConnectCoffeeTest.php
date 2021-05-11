@@ -23,7 +23,8 @@ class HomeConnectCoffeeMakerBaseTest extends TestCase
         'Control'                   => 'Start',
         'RemoteControlStartAllowed' => 'Yes',
         'LocalControlActive'        => 'No',
-        'Event'                     => '-'
+        'Event'                     => '',
+        'EventDescription'          => ''
     ];
 
     const ESPRESSO = [
@@ -37,7 +38,8 @@ class HomeConnectCoffeeMakerBaseTest extends TestCase
         'Control'                   => 'Start',
         'RemoteControlStartAllowed' => 'Yes',
         'LocalControlActive'        => 'No',
-        'Event'                     => '-'
+        'Event'                     => '',
+        'EventDescription'          => ''
     ];
 
     protected function setUp(): void

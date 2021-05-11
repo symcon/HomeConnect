@@ -9,6 +9,7 @@
             "Remote start not allowed": "Fernstart nicht erlaubt",
             "ProgramProgress": "Programmfortschritt",
             "RemainingProgramTime": "Verbleibende Laufzeit",
+            "ElapsedProgramTime": "Vergangene Laufzeit",
             "Seconds": "Sekunden",
             "Yes": "Ja",
             "No": "Nein",
@@ -36,7 +37,23 @@
             "Temperature Alarm Freezer": "Temperaturalarm Gefrierschrank",
             "Empty Dust Box and Clean Filter": "Staubkasten entleeren und Filter reinigen",
             "Robot is Stuck": "Roboter steckt fest",
-            "Docking Station not Found": "Dockingstation nicht gefunden"
+            "Docking Station not Found": "Dockingstation nicht gefunden",
+            "Event Description": "Ereignis Beschreibung",
+            "hint": "Hinweis",
+            "warning": "Warnung",
+            "alert": "Alarm",
+            "The program was aborted": "Das Programm wurde abgebrochen",
+            "The program is finished": "Das Programm ist fertig",
+            "The alarm clock has elapsed": "Der Alarm ist abgelaufen",
+            "The preheating phase is finished": "Die Vorwärmphase ist beendet",
+            "Please fill bean container": "Bitte Bohnenbehälter füllen",
+            "Please fill water tank": "Bitte Wassertank füllen",
+            "Please empty drip tray": "Bitte Tropfschalen leeren",
+            "Please close door": "Bitte Tür schließen",
+            "The freezer temperature is too high": "Die Temperatur des Gefrierschranks ist zu hoch",
+            "Please empty the dust box and clean the filter": "Bitte entleeren Sie die Staubbox und reinigen Sie den Filter",
+            "The robot cannot continue  it's run": "Der Roboter kann seine Strecke nicht fortsetzen",
+            "The robot cannot find the charging station": "Der Roboter kann die Ladestation nicht finden"
         }
     }
 }

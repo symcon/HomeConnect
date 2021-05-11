@@ -22,7 +22,8 @@ class HomeConnectDryerBaseTest extends TestCase
         'LocalControlActive'        => 'No',
         'RemoteControlActive'       => 'Yes',
         'RemoteControlStartAllowed' => 'Yes',
-        'Event'                     => '-'
+        'Event'                     => '-',
+        'EventDescription'          => ''
     ];
 
     const TIME_COLD = [
@@ -35,7 +36,8 @@ class HomeConnectDryerBaseTest extends TestCase
         'LocalControlActive'        => 'No',
         'RemoteControlActive'       => 'Yes',
         'RemoteControlStartAllowed' => 'Yes',
-        'Event'                     => '-'
+        'Event'                     => '-',
+        'EventDescription'          => ''
     ];
 
     protected function setUp(): void
