@@ -8,13 +8,21 @@
             "Yes": "Ja",
             "No": "Nein",
             "Configurator": "Konfigurator",
-            "Dryer": "Trockner",
             "Oven": "Backofen",
-            "CoffeeMaker": "Kaffeemaschine",
-            "WasherDryer": "Waschtrockner",
+            "WarmingDrawer": "",
             "Dishwasher": "Geschirrspüler",
             "FridgeFreezer": "Kühl-Gefrierkombination",
-            "Washer": "Waschmaschine"
+            "Refrigerator": "Kühlschrank",
+            "Freezer": "Gefrierschrank",
+            "WineCooler": "Weinkühlschrank",
+            "Washer": "Waschmaschine",
+            "Dryer": "Trockner",
+            "WasherDryer": "Waschtrockner",
+            "CoffeeMaker": "Kaffeemaschine",
+            "Cooktop": "Kochfeld",
+            "Hood": "Dunstabzugshaube",
+            "CleaningRobot": "Saugroboter",
+            "CookProcessor": "Küchenmaschine"
         }
     }
 }
