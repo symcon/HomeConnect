@@ -248,6 +248,18 @@ declare(strict_types=1);
                             ];
                             $this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/active', json_encode($payload));
                             break;
+
+                        case 'Pause':
+                            if (!$this->executeApplicanceCommand('BSH.Common.Command.PauseProgram')) {
+                                return;
+                            }
+                        break;
+
+                        case 'Resume':
+                            if (!$this->executeApplicanceCommand('BSH.Common.Command.ResumeProgram')) {
+                                return;
+                            }
+                        break;
                     }
                     break;
 
@@ -349,6 +361,7 @@ declare(strict_types=1);
             $options = $rawOptions['options'];
             $position = 10;
             $availableOptions = [];
+            $deviceType = $this->ReadPropertyString('DeviceType');
             foreach ($options as $option) {
                 if (in_array($option['key'], self::EXCLUDE)) {
                     continue;
@@ -356,9 +369,8 @@ declare(strict_types=1);
                 $key = $option['key'];
                 preg_match('/.+\.(?P<option>.+)/m', $key, $matches);
                 $ident = $matches['option'];
-                $availableOptions[] = 'Option' . $ident;
-
-                $profileName = 'HomeConnect.' . $this->ReadPropertyString('DeviceType') . '.Option.' . $ident;
+                $availableOptions[] = "Option$ident";
+                $profileName = "HomeConnect.$deviceType.Option.$ident";
                 $this->createVariableFromConstraints($profileName, $option, 'Option', $position);
                 $position++;
             }
@@ -375,12 +387,21 @@ declare(strict_types=1);
                 IPS_SetHidden($variableID, !in_array($ident, $availableOptions));
             }
 
-            if (!IPS_VariableProfileExists('HomeConnect.Control')) {
-                IPS_CreateVariableProfile('HomeConnect.Control', VARIABLETYPE_STRING);
-                IPS_SetVariableProfileAssociation('HomeConnect.Control', 'Start', $this->Translate('Start'), '', -1);
+            if (!IPS_VariableProfileExists("HomeConnect.Control.$deviceType")) {
+                IPS_CreateVariableProfile("HomeConnect.Control.$deviceType", VARIABLETYPE_STRING);
+                $associations = [
+                    ['Value' => 'Start', 'Name' => $this->Translate('Start')]
+                ];
+                if (in_array($deviceType, ['Oven', 'CleaningRobot', 'Dryer', 'Washer', 'DryerWasher'])) {
+                    $associations[] = ['Value' => 'Pause', 'Name' => $this->Translate('Pause')];
+                }
+                if (in_array($deviceType, ['Oven', 'CleaningRobot', 'Dishwasher', 'Dryer', 'Washer', 'DryerWasher'])) {
+                    $associations[] = ['Value' => 'Resume', 'Name' => $this->Translate('Resume')];
+                }
+                $this->createAssociations("HomeConnect.Control.$deviceType", $associations);
             }
             if (!@IPS_GetObjectIDByIdent('Control', $this->InstanceID)) {
-                $this->MaintainVariable('Control', $this->Translate('Control'), VARIABLETYPE_STRING, 'HomeConnect.Control', $position, true);
+                $this->MaintainVariable('Control', $this->Translate('Control'), VARIABLETYPE_STRING, "HomeConnect.Control.$deviceType", $position, true);
                 $this->SetValue('Control', 'Start');
                 $this->EnableAction('Control');
             }
@@ -709,7 +730,6 @@ declare(strict_types=1);
                 $object = IPS_GetObject($child);
                 if (strpos($object['ObjectIdent'], 'Option') !== false) {
                     if ($object['ObjectIsHidden'] == false) {
-                        // $options[str_replace('Option', '', $object['ObjectIdent'])] = $object['ObjectIdent'];
                         $options[$object['ObjectIdent']] = str_replace('Option', '', $object['ObjectIdent']);
                     }
                 }
@@ -787,5 +807,36 @@ declare(strict_types=1);
                     $this->createAssociations('HomeConnect.Event.' . $deviceType, $associations);
                 }
             }
+        }
+
+        private function executeApplicanceCommand($command)
+        {
+            $availableCommands = $this->getAvailableCommands();
+            $commandAvailable = function () use ($command, $availableCommands)
+            {
+                foreach ($availableCommands as $availableCommand) {
+                    if ($availableCommand['key'] == $command) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+            if (!$commandAvailable()) {
+                echo $this->Translate('Action can currently not be performed');
+                return false;
+            }
+            $payload = [
+                'data' => [
+                    'key'  => $command,
+                    'value'=> true
+                ]
+            ];
+            $this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/commands/' . $command, json_encode($payload));
+            return true;
+        }
+
+        private function getAvailableCommands()
+        {
+            return json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/commands'), true)['data']['commands'];
         }
     }

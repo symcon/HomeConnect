@@ -53,7 +53,11 @@
             "The freezer temperature is too high": "Die Temperatur des Gefrierschranks ist zu hoch",
             "Please empty the dust box and clean the filter": "Bitte entleeren Sie die Staubbox und reinigen Sie den Filter",
             "The robot cannot continue  it's run": "Der Roboter kann seine Strecke nicht fortsetzen",
-            "The robot cannot find the charging station": "Der Roboter kann die Ladestation nicht finden"
+            "The robot cannot find the charging station": "Der Roboter kann die Ladestation nicht finden",
+            "Start": "Starten",
+            "Pause": "Pausieren",
+            "Resume": "Fortsetzen",
+            "Action can currently not be performed": "Aktion kann zur Zeit nicht ausgeführt werden"
         }
     }
 }
