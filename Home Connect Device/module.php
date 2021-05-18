@@ -409,7 +409,8 @@ declare(strict_types=1);
 
         private function getSelectedProgram()
         {
-            return json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected'), true)['data'];
+            $selectedProgram = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected'), true);
+            return isset($selectedProgram['data']) ? $selectedProgram['data'] : false;
         }
 
         private function getProgram($key)
@@ -429,6 +430,10 @@ declare(strict_types=1);
         }
         private function updateOptionValues($program)
         {
+            if (!$program) {
+                $this->setOptionsDisabled(true);
+                return;
+            }
             $this->SetValue('SelectedProgram', $program['key']);
             $this->updateOptionVariables($program['key']);
             $optionKeys = [];
@@ -523,6 +528,7 @@ declare(strict_types=1);
                 switch ($errorDetector['error']['key']) {
                     case 'SDK.Error.UnsupportedProgram':
                     case 'SDK.Error.UnsupportedOperation':
+                    case 'SDK.Error.NoProgramSelected':
                         return $response;
 
                     default:
