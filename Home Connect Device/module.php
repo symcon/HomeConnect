@@ -472,6 +472,10 @@ declare(strict_types=1);
 
                     $profileName = str_replace('BSH', 'HomeConnect', $state['key']);
                     $variableType = $this->getVariableType($value);
+                    if (@IPS_GetObjectIDByIdent($ident, $this->InstanceID) &&
+                        $variableType == VARIABLETYPE_INTEGER && IPS_GetVariable($this->GetIDForIdent($ident)['VariableType']) == VARIABLETYPE_FLOAT) {
+                        continue;
+                    }
                     if (!IPS_VariableProfileExists($profileName)) {
                         IPS_CreateVariableProfile($profileName, $variableType);
                     }
@@ -480,6 +484,7 @@ declare(strict_types=1);
                             $this->addAssociation($profileName, $value, isset($state['displayvalue']) ? $state['displayvalue'] : $this->splitCamelCase($this->getLastSnippet($state['value'])));
                             break;
 
+                        case VARIABLETYPE_FLOAT:
                         case VARIABLETYPE_INTEGER:
                             if (isset($state['unit'])) {
                                 IPS_SetVariableProfileText($profileName, '', ' ' . $state['unit']);
