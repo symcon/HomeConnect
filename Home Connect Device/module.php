@@ -473,7 +473,7 @@ declare(strict_types=1);
                     $profileName = str_replace('BSH', 'HomeConnect', $state['key']);
                     $variableType = $this->getVariableType($value);
                     if (@IPS_GetObjectIDByIdent($ident, $this->InstanceID) &&
-                        $variableType == VARIABLETYPE_INTEGER && IPS_GetVariable($this->GetIDForIdent($ident)['VariableType']) == VARIABLETYPE_FLOAT) {
+                        $variableType == VARIABLETYPE_INTEGER && IPS_GetVariable($this->GetIDForIdent($ident))['VariableType'] == VARIABLETYPE_FLOAT) {
                         continue;
                     }
                     if (!IPS_VariableProfileExists($profileName)) {
