@@ -113,16 +113,7 @@ declare(strict_types=1);
                 if ($this->HasActiveParent()) {
                     if ($this->ReadPropertyString('HaID')) {
                         $this->SetSummary($this->ReadPropertyString('HaID'));
-                            $this->setupSettings();
-                            if ($this->createPrograms()) {
-                                //If the device is inactive, we cannot retrieve information about the current selected Program
-                                if (@IPS_GetObjectIDByIdent('OperationState', $this->InstanceID) && ($this->GetValue('OperationState') == 'BSH.Common.EnumType.OperationState.Ready')) {
-                                    $this->updateOptionValues($this->getSelectedProgram());
-                                }
-                            }
-                            $this->MaintainVariable('Event', $this->Translate('Event'), VARIABLETYPE_STRING, 'HomeConnect.Event.' . $this->ReadPropertyString('DeviceType'), 0, true);
-                            $this->MaintainVariable('EventDescription', $this->Translate('Event Description'), VARIABLETYPE_STRING, '', 0, true);
-                        }
+                        $this->InitializeDevice();
                     }
                 }
             }
@@ -301,6 +292,22 @@ declare(strict_types=1);
                     break;
             }
             $this->SetValue($Ident, $Value);
+        }
+
+        public function InitializeDevice()
+        {
+            if ($this->createStates()) {
+                $this->setupSettings();
+                if ($this->createPrograms()) {
+                    //If the device is inactive, we cannot retrieve information about the current selected Program
+                    if (@IPS_GetObjectIDByIdent('OperationState', $this->InstanceID) && ($this->GetValue('OperationState') == 'BSH.Common.EnumType.OperationState.Ready')) {
+                        $this->updateOptionValues($this->getSelectedProgram());
+                    }
+                }
+                $this->createEventProfile();
+                $this->MaintainVariable('Event', $this->Translate('Event'), VARIABLETYPE_STRING, 'HomeConnect.Event.' . $this->ReadPropertyString('DeviceType'), 0, true);
+                $this->MaintainVariable('EventDescription', $this->Translate('Event Description'), VARIABLETYPE_STRING, '', 0, true);
+            }
         }
 
         private function createPrograms()
@@ -532,6 +539,7 @@ declare(strict_types=1);
                     case 'SDK.Error.UnsupportedProgram':
                     case 'SDK.Error.UnsupportedOperation':
                     case 'SDK.Error.NoProgramSelected':
+                    // case 'SDK.Error.HomeAppliance.Connection.Initialization.Failed':
                         return $response;
 
                     default:

@@ -57,7 +57,8 @@
             "Start": "Starten",
             "Pause": "Pausieren",
             "Resume": "Fortsetzen",
-            "Action can currently not be performed": "Aktion kann zur Zeit nicht ausgeführt werden"
+            "Action can currently not be performed": "Aktion kann zur Zeit nicht ausgeführt werden",
+            "Initialize Device": "Gerät Initialisieren"
         }
     }
 }

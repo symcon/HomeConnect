@@ -7,6 +7,12 @@
             "enabled": false
         }
     ],
-    "actions": [],
+    "actions": [
+        {
+            "type": "Button",
+            "caption": "Initialize Device",
+            "onClick": "HC_InitializeDevice($id);"
+        }
+    ],
     "status": []
 }
