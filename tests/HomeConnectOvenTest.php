@@ -49,11 +49,11 @@ class HomeConnectVarTypeTest extends TestCase
         $newFloat = IPS_GetObjectIDByIdent('CurrentCavityTemperature', $oven);
         $this->assertNotEquals($newFloat, $initialVar);
         $this->assertEquals(VARIABLETYPE_FLOAT, $this->getValueType($oven));
-        
+
         $intf->ReceiveData($this->generateTestData(52));
         $this->assertEquals($newFloat, IPS_GetObjectIDByIdent('CurrentCavityTemperature', $oven));
         $this->assertEquals(VARIABLETYPE_FLOAT, $this->getValueType($oven));
-        
+
         $intf->ReceiveData($this->generateTestData(54.00000000000001));
         $this->assertEquals($newFloat, IPS_GetObjectIDByIdent('CurrentCavityTemperature', $oven));
         $this->assertEquals(VARIABLETYPE_FLOAT, $this->getValueType($oven));
