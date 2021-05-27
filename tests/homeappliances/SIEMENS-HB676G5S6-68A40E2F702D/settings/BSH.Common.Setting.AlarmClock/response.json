@@ -1,0 +1,12 @@
+{
+    "data": {
+      "name": "Alarm",
+      "key": "BSH.Common.Setting.AlarmClock",
+      "constraints": {
+        "access": "readWrite"
+      },
+      "unit": "seconds",
+      "type": "Int",
+      "value": 0
+    }
+  }

@@ -1,0 +1,11 @@
+{
+    "data": {
+      "name": "Kindersicherung",
+      "key": "BSH.Common.Setting.ChildLock",
+      "constraints": {
+        "access": "readWrite"
+      },
+      "type": "Boolean",
+      "value": false
+    }
+  }

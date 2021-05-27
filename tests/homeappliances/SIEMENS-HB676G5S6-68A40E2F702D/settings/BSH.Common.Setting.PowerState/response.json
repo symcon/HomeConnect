@@ -1,0 +1,25 @@
+{
+    "data": {
+      "name": "Energiezustand",
+      "key": "BSH.Common.Setting.PowerState",
+      "constraints": {
+        "allowedvalues": [
+          "BSH.Common.EnumType.PowerState.MainsOff",
+          "BSH.Common.EnumType.PowerState.Off",
+          "BSH.Common.EnumType.PowerState.On",
+          "BSH.Common.EnumType.PowerState.Standby"
+        ],
+        "displayvalues": [
+          "Aus",
+          "Aus",
+          "An",
+          "Standby"
+        ],
+        "default": "BSH.Common.EnumType.PowerState.On",
+        "access": "readWrite"
+      },
+      "type": "BSH.Common.EnumType.PowerState",
+      "displayvalue": "Standby",
+      "value": "BSH.Common.EnumType.PowerState.Standby"
+    }
+  }

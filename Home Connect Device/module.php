@@ -113,7 +113,6 @@ declare(strict_types=1);
                 if ($this->HasActiveParent()) {
                     if ($this->ReadPropertyString('HaID')) {
                         $this->SetSummary($this->ReadPropertyString('HaID'));
-                        if ($this->createStates()) {
                             $this->setupSettings();
                             if ($this->createPrograms()) {
                                 //If the device is inactive, we cannot retrieve information about the current selected Program
@@ -121,7 +120,6 @@ declare(strict_types=1);
                                     $this->updateOptionValues($this->getSelectedProgram());
                                 }
                             }
-                            $this->createEventProfile();
                             $this->MaintainVariable('Event', $this->Translate('Event'), VARIABLETYPE_STRING, 'HomeConnect.Event.' . $this->ReadPropertyString('DeviceType'), 0, true);
                             $this->MaintainVariable('EventDescription', $this->Translate('Event Description'), VARIABLETYPE_STRING, '', 0, true);
                         }

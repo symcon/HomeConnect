@@ -1,0 +1,11 @@
+{
+    "data": {
+      "name": "Sabbat Modus",
+      "key": "Cooking.Oven.Setting.SabbathMode",
+      "constraints": {
+        "access": "readWrite"
+      },
+      "type": "Boolean",
+      "value": false
+    }
+  }
