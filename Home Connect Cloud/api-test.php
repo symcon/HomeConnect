@@ -35,14 +35,19 @@ if (defined('PHPUNIT_TESTSUITE')) {
 } else {
     trait TestAPI
     {
-        public function getRequest(string $enpoint)
+        public function getRequest(string $endpoint)
         {
-            return $this->getData($enpoint);
+            return $this->getData($endpoint);
         }
 
-        public function putRequest(string $enpoint, string $payload)
+        public function putRequest(string $endpoint, string $payload)
         {
-            return $this->putData($enpoint, $payload);
+            return $this->putData($endpoint, $payload);
+        }
+
+        public function deleteRequest(string $endpoint)
+        {
+            return $this->deleteData($endpoint);
         }
     }
 }

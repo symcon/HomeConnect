@@ -57,6 +57,10 @@ declare(strict_types=1);
             $data = json_decode($Data, true);
             $this->SendDebug('Forward', $Data, 0);
             if (isset($data['Payload'])) {
+                $this->SendDebug('Payload', $data['Payload'], 0);
+                if ($data['Payload'] == 'DELETE') {
+                    return $this->deleteRequest($data['Endpoint']);
+                }
                 return $this->putRequest($data['Endpoint'], $data['Payload']);
             }
             return $this->getRequest($data['Endpoint']);
@@ -278,6 +282,23 @@ declare(strict_types=1);
             if ((strpos($http_response_header[0], '201') === false)) {
                 return $result;
             }
+
+            return $result;
+        }
+
+        private function deleteData($endpoint)
+        {
+            $opts = [
+                'http'=> [
+                    'method'        => 'DELETE',
+                    'header'        => 'Authorization: Bearer ' . $this->FetchAccessToken() . "\r\n" .
+                                       'Accept-Language: ' . $this->ReadPropertyString('Language') . "\r\n"
+                ]
+            ];
+            $context = stream_context_create($opts);
+            $this->SendDebug('Request', print_r($context, true), 0);
+
+            $result = file_get_contents(self::HOME_CONNECT_BASE . $endpoint, false, $context);
 
             return $result;
         }

@@ -2,7 +2,8 @@
     "translations": {
         "de": {
             "Register": "Registrieren",
-            "Language": "Sprache"
+            "Language": "Sprache",
+            "Register Server Events": "Server Events registrieren"
         }
     }
 }

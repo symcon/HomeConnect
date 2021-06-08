@@ -238,6 +238,14 @@ declare(strict_types=1);
                             $this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/active', json_encode($payload));
                             break;
 
+                        case 'Stop':
+                            if (!$this->switchable()) {
+                                echo $this->Translate('RemoteControl not active / RemoteStart not active / LocalControl active');
+                                return;
+                            }
+                            $this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/active', 'DELETE');
+                            break;
+
                         case 'Pause':
                             if (!$this->executeApplicanceCommand('BSH.Common.Command.PauseProgram')) {
                                 return;
@@ -395,7 +403,8 @@ declare(strict_types=1);
             if (!IPS_VariableProfileExists("HomeConnect.Control.$deviceType")) {
                 IPS_CreateVariableProfile("HomeConnect.Control.$deviceType", VARIABLETYPE_STRING);
                 $associations = [
-                    ['Value' => 'Start', 'Name' => $this->Translate('Start')]
+                    ['Value' => 'Start', 'Name' => $this->Translate('Start')],
+                    ['Value' => 'Stop', 'Name' => $this->Translate('Stop')]
                 ];
                 if (in_array($deviceType, ['Oven', 'CleaningRobot', 'Dryer', 'Washer', 'DryerWasher'])) {
                     $associations[] = ['Value' => 'Pause', 'Name' => $this->Translate('Pause')];
