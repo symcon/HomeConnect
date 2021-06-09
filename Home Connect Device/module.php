@@ -455,7 +455,13 @@ declare(strict_types=1);
                 $ident = 'Option' . $this->getLastSnippet($option['key']);
                 $optionKeys[$ident] = $option['key'];
                 if (@IPS_GetObjectIDByIdent($ident, $this->InstanceID) && !IPS_GetObject($this->GetIDForIdent($ident))['ObjectIsHidden']) {
-                    $value = isset($option['value']) ? $option['value'] : $option['constraints']['default'];
+                    if (isset($option['value'])) {
+                        $value = $option['value'];
+                    } elseif (isset($option['constraints']['default'])) {
+                        $value = $option['constraints']['default'];
+                    } else {
+                        $value = $option['constraints']['allowedvalues'][0];
+                    }
                     $this->SendDebug('Value', strval($value), 0);
                     $this->SetValue($ident, $value);
                 }
