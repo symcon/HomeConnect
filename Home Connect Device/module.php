@@ -208,7 +208,7 @@ declare(strict_types=1);
                         echo $this->Translate('Device is running');
                         return;
                     }
-                    if ($this->ReadPropertyString('DeviceType') != 'Oven') {
+                    if (!in_array($this->ReadPropertyString('DeviceType'), ['Oven', 'Hood'])) {
                         $payload = [
                             'data' => [
                                 'key'     => $Value,
@@ -232,7 +232,7 @@ declare(strict_types=1);
                             $payload = [
                                 'data' => [
                                     'key'     => $this->GetValue('SelectedProgram'),
-                                    'options' => $this->ReadPropertyString('DeviceType') == 'Oven' ? $this->createOptionPayload() : []
+                                    'options' => in_array($this->ReadPropertyString('DeviceType'), ['Oven', 'Hood']) ? $this->createOptionPayload() : []
                                 ]
                             ];
                             $this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/active', json_encode($payload));
@@ -267,7 +267,7 @@ declare(strict_types=1);
                     }
                     $availableOptions = $this->getValidOptions();
                     if (isset($availableOptions[$Ident])) {
-                        if ($this->ReadPropertyString('DeviceType') != 'Oven') {
+                        if (!in_array($this->ReadPropertyString('DeviceType'), ['Oven', 'Hood'])) {
                             $optionKeys = json_decode($this->ReadAttributeString('OptionKeys'), true);
                             $payload = [
                                 'data' => [
