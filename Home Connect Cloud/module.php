@@ -34,6 +34,9 @@ declare(strict_types=1);
             $this->RegisterMessage(IPS_GetInstance($this->InstanceID)['ConnectionID'], IM_CHANGESTATUS);
 
             $this->RegisterPropertyString('Language', 'de-DE');
+            
+            // A Keep-Alive is sent every 55 seconds. Fail the connection if we miss one
+            $this->RegisterTimer("KeepAliveCheck", 60000, 'HC_CheckServerEvents($_IPS[\'TARGET\'])');
         }
 
         public function ApplyChanges()
@@ -68,7 +71,14 @@ declare(strict_types=1);
 
         public function ReceiveData($JSONString)
         {
+            $this->SendDebug('Receive', $JSONString, 0);
             $data = json_decode($JSONString, true);
+            switch ($data['Event']) {
+                case "KEEP-ALIVE": {
+                    $this->SendDebug("KeepAlive", "OK", 0);
+                    $this->SetBuffer("KeepAlive", time());
+                }
+            }
             $data['DataID'] = '{173D59E5-F949-1C1B-9B34-671217C07B0E}';
             $this->SendDataToChildren(json_encode($data));
         }
@@ -100,6 +110,19 @@ declare(strict_types=1);
             IPS_SetProperty($parent, 'URL', $url);
             IPS_SetProperty($parent, 'Headers', json_encode([['Name' => 'Authorization', 'Value' => 'Bearer ' . $this->FetchAccessToken()]]));
             IPS_ApplyChanges($parent);
+
+            // Mark connection as good for the moment
+            $this->SetBuffer("KeepAlive", time());
+        }
+
+        public function CheckServerEvents()
+        {
+            if ($this->HasActiveParent()) {
+                if (time() - intval($this->GetBuffer("KeepAlive")) > 60 /* Seconds */) {
+                    $this->SendDebug("KeepAlive", "Failed. Reregistering...", 0);
+                    $this->RegisterServerEvents();
+                }
+            }
         }
 
         public function GetConfigurationForParent()
