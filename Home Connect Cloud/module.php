@@ -36,7 +36,7 @@ declare(strict_types=1);
             $this->RegisterPropertyString('Language', 'de-DE');
 
             // A Keep-Alive is sent every 55 seconds. Fail the connection if we miss one
-            $this->RegisterTimer('KeepAliveCheck', 60000, 'HC_CheckServerEvents($_IPS[\'TARGET\'])');
+            $this->RegisterTimer('KeepAliveCheck', 60000, 'HC_CheckServerEvents($_IPS[\'TARGET\']);');
         }
 
         public function ApplyChanges()
