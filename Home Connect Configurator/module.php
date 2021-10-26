@@ -34,28 +34,49 @@ declare(strict_types=1);
             if (!$this->HasActiveParent()) {
                 return json_encode($form);
             }
-            $homeappliances = json_decode($this->getHomeAppliances(), true)['data']['homeappliances'];
-            $devices = [];
-            foreach ($homeappliances as $homeappliance) {
-                $devices[] = [
-                    'HaID'       => $homeappliance['haId'],
-                    'Name'       => $homeappliance['name'],
-                    'Type'       => $this->Translate($homeappliance['type']),
-                    'Brand'      => $homeappliance['brand'],
-                    'Connected'  => $homeappliance['connected'] ? $this->Translate('Yes') : $this->Translate('No'),
-                    'instanceID' => $this->getInstanceIDForGuid($homeappliance['haId'], '{F29DF312-A62E-9989-1F1A-0D1E1D171AD3}'),
-                    'create'     => [
-                        'moduleID'      => $this->getModuleIDByType($homeappliance['type']),
-                        'configuration' => [
-                            'HaID'       => $homeappliance['haId'],
-                            'DeviceType' => $homeappliance['type']
-                        ],
-                        'name' => $homeappliance['name']
+            $homeapplianceData = json_decode($this->getHomeAppliances(), true);
+            if (isset($homeapplianceData['data']) && isset($homeapplianceData['data']['homeappliances'])) {
+                $homeappliances = $homeapplianceData['data']['homeappliances'];
+                $devices = [];
+                foreach ($homeappliances as $homeappliance) {
+                    $devices[] = [
+                        'HaID'       => $homeappliance['haId'],
+                        'Name'       => $homeappliance['name'],
+                        'Type'       => $this->Translate($homeappliance['type']),
+                        'Brand'      => $homeappliance['brand'],
+                        'Connected'  => $homeappliance['connected'] ? $this->Translate('Yes') : $this->Translate('No'),
+                        'instanceID' => $this->getInstanceIDForGuid($homeappliance['haId'], '{F29DF312-A62E-9989-1F1A-0D1E1D171AD3}'),
+                        'create'     => [
+                            'moduleID'      => $this->getModuleIDByType($homeappliance['type']),
+                            'configuration' => [
+                                'HaID'       => $homeappliance['haId'],
+                                'DeviceType' => $homeappliance['type']
+                            ],
+                            'name' => $homeappliance['name']
+                        ]
+                    ];
+                    $this->SendDebug($homeappliance['name'], $this->getModuleIDByType($homeappliance['type']), 0);
+                }
+                $form['actions'][0]['values'] = $devices;
+            } else {
+                $this->SendDebug('Error', json_encode($homeapplianceData), 0);
+                $errorDescription = $this->Translate('No error description available');
+                if (isset($homeapplianceData['error']) && isset($homeapplianceData['error']['description'])) {
+                    $errorDescription = $homeapplianceData['error']['description'];
+                }
+                $form['elements'][] = [
+                    'type'  => 'PopupAlert',
+                    'popup' => [
+                        'items' => [
+                            [
+                                'type'    => 'Label',
+                                'caption' => $this->Translate('An error occurred during the request to Home Connect:') .
+                                PHP_EOL . $errorDescription
+                            ]
+                        ]
                     ]
                 ];
-                $this->SendDebug($homeappliance['name'], $this->getModuleIDByType($homeappliance['type']), 0);
             }
-            $form['actions'][0]['values'] = $devices;
             return json_encode($form);
         }
 

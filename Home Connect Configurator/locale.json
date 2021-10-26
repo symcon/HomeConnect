@@ -22,7 +22,9 @@
             "Cooktop": "Kochfeld",
             "Hood": "Dunstabzugshaube",
             "CleaningRobot": "Saugroboter",
-            "CookProcessor": "Küchenmaschine"
+            "CookProcessor": "Küchenmaschine",
+            "An error occurred during the request to Home Connect:": "Bei der Anfrage an Home Connect ist ein Fehler aufgetreten:",
+            "No error description available": "Keine Beschreibung des Fehlers vorhanden"
         }
     }
 }
