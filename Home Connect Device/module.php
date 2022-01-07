@@ -93,8 +93,8 @@ declare(strict_types=1);
             //Restriction
             if (!IPS_VariableProfileExists('HomeConnect.YesNo')) {
                 IPS_CreateVariableProfile('HomeConnect.YesNo', VARIABLETYPE_BOOLEAN);
-                IPS_SetVariableProfileAssociation('HomeConnect.YesNo', true, $this->Translate('Yes'), '', 0);
-                IPS_SetVariableProfileAssociation('HomeConnect.YesNo', false, $this->Translate('No'), '', 0);
+                IPS_SetVariableProfileAssociation('HomeConnect.YesNo', true, $this->Translate('Yes'), '', -1);
+                IPS_SetVariableProfileAssociation('HomeConnect.YesNo', false, $this->Translate('No'), '', -1);
             }
         }
 
@@ -492,10 +492,29 @@ declare(strict_types=1);
 
                     $profileName = str_replace('BSH', 'HomeConnect', $state['key']);
                     $variableType = $this->getVariableType($value);
-                    if (@IPS_GetObjectIDByIdent($ident, $this->InstanceID) &&
-                        $variableType == VARIABLETYPE_INTEGER && IPS_GetVariable($this->GetIDForIdent($ident))['VariableType'] == VARIABLETYPE_FLOAT) {
-                        continue;
+                    if ($variableType == VARIABLETYPE_FLOAT) {
+                        $profileName = $profileName . '.f';
                     }
+                    if (@IPS_GetObjectIDByIdent($ident, $this->InstanceID)) {
+                        $existingType = IPS_GetVariable($this->GetIDForIdent($ident))['VariableType'];
+                        if (($existingType == VARIABLETYPE_FLOAT && $variableType == VARIABLETYPE_INTEGER) ||
+                        ($existingType == VARIABLETYPE_INTEGER && $variableType == VARIABLETYPE_FLOAT)) {
+                            if ($existingType == VARIABLETYPE_FLOAT) {
+                                $profileName = $profileName . '.f';
+                            }
+                            if (!IPS_VariableProfileExists($profileName)) {
+                                IPS_CreateVariableProfile($profileName, VARIABLETYPE_FLOAT);
+                            }
+                            if (isset($state['unit'])) {
+                                IPS_SetVariableProfileText($profileName, '', ' ' . $state['unit']);
+                            }
+                            $variableDisplayName = isset($state['name']) ? $state['name'] : $this->splitCamelCase($ident);
+                            $this->MaintainVariable($ident, $variableDisplayName, VARIABLETYPE_FLOAT, $profileName, 0, true);
+                            $this->SetValue($ident, $value);
+                            continue;
+                        }
+                    }
+
                     if (!IPS_VariableProfileExists($profileName)) {
                         IPS_CreateVariableProfile($profileName, $variableType);
                     }
@@ -505,6 +524,9 @@ declare(strict_types=1);
                             break;
 
                         case VARIABLETYPE_FLOAT:
+                            IPS_SetVariableProfileDigits($profileName, 2);
+                            // Only float needs decimal places but both need suffixes
+                            // No break. Add additional comment above this line if intentional
                         case VARIABLETYPE_INTEGER:
                             if (isset($state['unit'])) {
                                 IPS_SetVariableProfileText($profileName, '', ' ' . $state['unit']);
