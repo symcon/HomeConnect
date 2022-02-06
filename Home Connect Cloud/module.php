@@ -216,8 +216,12 @@ declare(strict_types=1);
                     ]
                 ];
                 $context = stream_context_create($options);
-                $result = file_get_contents('https://' . $this->oauthServer . '/access_token/' . $this->oauthIdentifer, false, $context);
+                $result = @file_get_contents('https://' . $this->oauthServer . '/access_token/' . $this->oauthIdentifer, false, $context);
 
+                if (false === $result) {
+                    die('Service unavailable');
+                }
+                
                 $data = json_decode($result);
 
                 if (!isset($data->token_type) || $data->token_type != 'Bearer') {
