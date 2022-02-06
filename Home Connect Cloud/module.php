@@ -221,7 +221,7 @@ declare(strict_types=1);
                 if (false === $result) {
                     die('Service unavailable');
                 }
-                
+
                 $data = json_decode($result);
 
                 if (!isset($data->token_type) || $data->token_type != 'Bearer') {
