@@ -87,10 +87,16 @@ declare(strict_types=1);
 
         private function requestDataFromParent($endpoint)
         {
-            return $this->SendDataToParent(json_encode([
+            $return = @$this->SendDataToParent(json_encode([
                 'DataID'      => '{41DDAA3B-65F0-B833-36EE-CEB57A80D022}',
                 'Endpoint'    => $endpoint
             ]));
+
+            if (false === $return) {
+                $return = "";
+            }
+
+            return $return;
         }
 
         private function getModuleIDByType($type)
