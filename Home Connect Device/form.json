@@ -2,7 +2,7 @@
     "elements": [
         {
             "type": "ValidationTextBox",
-            "caption" :"HaID",
+            "caption": "HaID",
             "name": "HaID",
             "enabled": false
         }

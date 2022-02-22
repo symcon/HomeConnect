@@ -1,94 +1,94 @@
 {
     "data": {
-      "programs": [
-        {
-          "key": "Cooking.Oven.Program.HeatingMode.HotAir",
-          "name": "4D Heißluft",
-          "constraints": {
-            "execution": "selectandstart",
-            "available": true
-          }
-        },
-        {
-          "key": "Cooking.Oven.Program.HeatingMode.TopBottomHeating",
-          "name": "Ober-/ Unterhitze",
-          "constraints": {
-            "execution": "selectandstart",
-            "available": true
-          }
-        },
-        {
-          "key": "Cooking.Oven.Program.HeatingMode.HotAirEco",
-          "name": "Heißluft eco",
-          "constraints": {
-            "execution": "selectandstart",
-            "available": true
-          }
-        },
-        {
-          "key": "Cooking.Oven.Program.HeatingMode.TopBottomHeatingEco",
-          "name": "Ober-/ Unterhitze eco",
-          "constraints": {
-            "execution": "selectandstart",
-            "available": true
-          }
-        },
-        {
-          "key": "Cooking.Oven.Program.HeatingMode.HotAirGrilling",
-          "name": "Umluftgrillen",
-          "constraints": {
-            "execution": "selectandstart",
-            "available": true
-          }
-        },
-        {
-          "key": "Cooking.Oven.Program.HeatingMode.PizzaSetting",
-          "name": "Pizzastufe",
-          "constraints": {
-            "execution": "selectandstart",
-            "available": true
-          }
-        },
-        {
-          "key": "Cooking.Oven.Program.HeatingMode.SlowCook",
-          "name": "Sanftgaren",
-          "constraints": {
-            "execution": "selectandstart",
-            "available": true
-          }
-        },
-        {
-          "key": "Cooking.Oven.Program.HeatingMode.BottomHeating",
-          "name": "Unterhitze",
-          "constraints": {
-            "execution": "selectandstart",
-            "available": true
-          }
-        },
-        {
-          "key": "Cooking.Oven.Program.HeatingMode.KeepWarm",
-          "name": "Warmhalten",
-          "constraints": {
-            "execution": "selectandstart",
-            "available": true
-          }
-        },
-        {
-          "key": "Cooking.Oven.Program.HeatingMode.PreheatOvenware",
-          "name": "Geschirr vorwärmen",
-          "constraints": {
-            "execution": "selectandstart",
-            "available": true
-          }
-        },
-        {
-          "key": "Cooking.Oven.Program.HeatingMode.FrozenHeatupSpecial",
-          "name": "coolStart-Funktion",
-          "constraints": {
-            "execution": "selectandstart",
-            "available": true
-          }
-        }
-      ]
+        "programs": [
+            {
+                "key": "Cooking.Oven.Program.HeatingMode.HotAir",
+                "name": "4D Heißluft",
+                "constraints": {
+                    "execution": "selectandstart",
+                    "available": true
+                }
+            },
+            {
+                "key": "Cooking.Oven.Program.HeatingMode.TopBottomHeating",
+                "name": "Ober-/ Unterhitze",
+                "constraints": {
+                    "execution": "selectandstart",
+                    "available": true
+                }
+            },
+            {
+                "key": "Cooking.Oven.Program.HeatingMode.HotAirEco",
+                "name": "Heißluft eco",
+                "constraints": {
+                    "execution": "selectandstart",
+                    "available": true
+                }
+            },
+            {
+                "key": "Cooking.Oven.Program.HeatingMode.TopBottomHeatingEco",
+                "name": "Ober-/ Unterhitze eco",
+                "constraints": {
+                    "execution": "selectandstart",
+                    "available": true
+                }
+            },
+            {
+                "key": "Cooking.Oven.Program.HeatingMode.HotAirGrilling",
+                "name": "Umluftgrillen",
+                "constraints": {
+                    "execution": "selectandstart",
+                    "available": true
+                }
+            },
+            {
+                "key": "Cooking.Oven.Program.HeatingMode.PizzaSetting",
+                "name": "Pizzastufe",
+                "constraints": {
+                    "execution": "selectandstart",
+                    "available": true
+                }
+            },
+            {
+                "key": "Cooking.Oven.Program.HeatingMode.SlowCook",
+                "name": "Sanftgaren",
+                "constraints": {
+                    "execution": "selectandstart",
+                    "available": true
+                }
+            },
+            {
+                "key": "Cooking.Oven.Program.HeatingMode.BottomHeating",
+                "name": "Unterhitze",
+                "constraints": {
+                    "execution": "selectandstart",
+                    "available": true
+                }
+            },
+            {
+                "key": "Cooking.Oven.Program.HeatingMode.KeepWarm",
+                "name": "Warmhalten",
+                "constraints": {
+                    "execution": "selectandstart",
+                    "available": true
+                }
+            },
+            {
+                "key": "Cooking.Oven.Program.HeatingMode.PreheatOvenware",
+                "name": "Geschirr vorwärmen",
+                "constraints": {
+                    "execution": "selectandstart",
+                    "available": true
+                }
+            },
+            {
+                "key": "Cooking.Oven.Program.HeatingMode.FrozenHeatupSpecial",
+                "name": "coolStart-Funktion",
+                "constraints": {
+                    "execution": "selectandstart",
+                    "available": true
+                }
+            }
+        ]
     }
-  }
+}

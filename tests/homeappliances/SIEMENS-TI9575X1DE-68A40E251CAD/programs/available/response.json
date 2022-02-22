@@ -1,202 +1,202 @@
 {
     "data": {
-      "programs": [
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.Beverage.Ristretto",
-          "name": "Ristretto",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.Beverage.EspressoDoppio",
-          "name": "Espresso Doppio",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.Beverage.Espresso",
-          "name": "Espresso",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.Beverage.EspressoMacchiato",
-          "name": "Espresso Macchiato",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.Beverage.Coffee",
-          "name": "Caffe Crema",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.Beverage.Cappuccino",
-          "name": "Cappuccino",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.Beverage.LatteMacchiato",
-          "name": "Latte Macchiato",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.Beverage.CaffeLatte",
-          "name": "Milchkaffee",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.Beverage.MilkFroth",
-          "name": "Milchschaum",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.Beverage.WarmMilk",
-          "name": "Warme Milch",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.CafeCortado",
-          "name": "Café cortado",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.FlatWhite",
-          "name": "Flat White",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.Americano",
-          "name": "Americano",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.KleinerBrauner",
-          "name": "Kleiner Brauner",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.GrosserBrauner",
-          "name": "Großer Brauner",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.Verlaengerter",
-          "name": "Verlängerter",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.VerlaengerterBraun",
-          "name": "Verlängerter braun",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.WienerMelange",
-          "name": "Wiener Melange",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.Cortado",
-          "name": "Cortado",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.CafeConLeche",
-          "name": "Café con leche",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.CafeAuLait",
-          "name": "Café au lait",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.Kaapi",
-          "name": "Kaapi",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.KoffieVerkeerd",
-          "name": "Koffie verkeerd",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.Galao",
-          "name": "Galão",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.Garoto",
-          "name": "Garoto",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.RedEye",
-          "name": "Red Eye",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.BlackEye",
-          "name": "Black Eye",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.DeadEye",
-          "name": "Dead Eye",
-          "constraints": {
-            "execution": "selectandstart"
-          }
-        }
-      ]
+        "programs": [
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.Beverage.Ristretto",
+                "name": "Ristretto",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.Beverage.EspressoDoppio",
+                "name": "Espresso Doppio",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.Beverage.Espresso",
+                "name": "Espresso",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.Beverage.EspressoMacchiato",
+                "name": "Espresso Macchiato",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.Beverage.Coffee",
+                "name": "Caffe Crema",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.Beverage.Cappuccino",
+                "name": "Cappuccino",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.Beverage.LatteMacchiato",
+                "name": "Latte Macchiato",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.Beverage.CaffeLatte",
+                "name": "Milchkaffee",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.Beverage.MilkFroth",
+                "name": "Milchschaum",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.Beverage.WarmMilk",
+                "name": "Warme Milch",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.CafeCortado",
+                "name": "Café cortado",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.FlatWhite",
+                "name": "Flat White",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.Americano",
+                "name": "Americano",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.KleinerBrauner",
+                "name": "Kleiner Brauner",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.GrosserBrauner",
+                "name": "Großer Brauner",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.Verlaengerter",
+                "name": "Verlängerter",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.VerlaengerterBraun",
+                "name": "Verlängerter braun",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.WienerMelange",
+                "name": "Wiener Melange",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.Cortado",
+                "name": "Cortado",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.CafeConLeche",
+                "name": "Café con leche",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.CafeAuLait",
+                "name": "Café au lait",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.Kaapi",
+                "name": "Kaapi",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.KoffieVerkeerd",
+                "name": "Koffie verkeerd",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.Galao",
+                "name": "Galão",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.Garoto",
+                "name": "Garoto",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.RedEye",
+                "name": "Red Eye",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.BlackEye",
+                "name": "Black Eye",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Program.CoffeeWorld.DeadEye",
+                "name": "Dead Eye",
+                "constraints": {
+                    "execution": "selectandstart"
+                }
+            }
+        ]
     }
-  }
+}

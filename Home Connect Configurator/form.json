@@ -26,7 +26,6 @@
                     "caption": "Brand",
                     "name": "Brand",
                     "width": "150px"
-            
                 },
                 {
                     "caption": "Connected",
@@ -35,7 +34,7 @@
                 }
             ],
             "values": []
-            }
+        }
     ],
     "status": []
 }

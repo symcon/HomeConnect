@@ -1,42 +1,42 @@
 {
-  "data": {
-    "key": "LaundryCare.Dryer.Program.Towels",
-    "options": [
-      {
-        "key": "BSH.Common.Option.FinishInRelative",
-        "value": 10020,
-        "unit": "seconds",
-        "name": "Zeitversetzter Betrieb"
-      },
-      {
-        "key": "LaundryCare.Dryer.Option.ConnectedDry.OriginalProgramTime",
-        "value": 13200,
-        "unit": "seconds"
-      },
-      {
-        "key": "LaundryCare.Dryer.Option.DryingTarget",
-        "value": "LaundryCare.Dryer.EnumType.DryingTarget.CupboardDry",
-        "name": "Trockenziel",
-        "displayvalue": "Schranktrocken"
-      },
-      {
-        "key": "LaundryCare.Dryer.Option.DryingTargetAdjustment",
-        "value": "LaundryCare.Dryer.EnumType.DryingTargetAdjustment.Off",
-        "name": "Trockengrad",
-        "displayvalue": "0"
-      },
-      {
-        "key": "LaundryCare.Dryer.Option.Gentle",
-        "value": false,
-        "name": "Schontrocknen"
-      },
-      {
-        "key": "LaundryCare.Dryer.Option.WrinkleGuard",
-        "value": "LaundryCare.Dryer.EnumType.WrinkleGuard.Min60",
-        "name": "Knitterschutz",
-        "displayvalue": "60 min"
-      }
-    ],
-    "name": "Handtücher"
-  }
+    "data": {
+        "key": "LaundryCare.Dryer.Program.Towels",
+        "options": [
+            {
+                "key": "BSH.Common.Option.FinishInRelative",
+                "value": 10020,
+                "unit": "seconds",
+                "name": "Zeitversetzter Betrieb"
+            },
+            {
+                "key": "LaundryCare.Dryer.Option.ConnectedDry.OriginalProgramTime",
+                "value": 13200,
+                "unit": "seconds"
+            },
+            {
+                "key": "LaundryCare.Dryer.Option.DryingTarget",
+                "value": "LaundryCare.Dryer.EnumType.DryingTarget.CupboardDry",
+                "name": "Trockenziel",
+                "displayvalue": "Schranktrocken"
+            },
+            {
+                "key": "LaundryCare.Dryer.Option.DryingTargetAdjustment",
+                "value": "LaundryCare.Dryer.EnumType.DryingTargetAdjustment.Off",
+                "name": "Trockengrad",
+                "displayvalue": "0"
+            },
+            {
+                "key": "LaundryCare.Dryer.Option.Gentle",
+                "value": false,
+                "name": "Schontrocknen"
+            },
+            {
+                "key": "LaundryCare.Dryer.Option.WrinkleGuard",
+                "value": "LaundryCare.Dryer.EnumType.WrinkleGuard.Min60",
+                "name": "Knitterschutz",
+                "displayvalue": "60 min"
+            }
+        ],
+        "name": "Handtücher"
+    }
 }

@@ -1,51 +1,51 @@
 {
-  "data": {
-    "homeappliances": [
-      {
-        "name": "Kaffeevollautomat",
-        "brand": "Siemens",
-        "vib": "TI9575X1DE",
-        "connected": true,
-        "type": "CoffeeMaker",
-        "enumber": "TI9575X1DE/10",
-        "haId": "SIEMENS-TI9575X1DE-68A40E251CAD"
-      },
-      {
-        "name": "Fridge Freezer",
-        "brand": "Bosch",
-        "vib": "KGN36HI32",
-        "connected": true,
-        "type": "FridgeFreezer",
-        "enumber": "KGN36HI32/03",
-        "haId": "BOSCH-KGN36HI32-68A40E01D5C6"
-      },
-      {
-        "name": "Trockner",
-        "brand": "Bosch",
-        "vib": "WTX87EH0EU",
-        "connected": true,
-        "type": "Dryer",
-        "enumber": "WTX87EH0EU/01",
-        "haId": "BOSCH-WTX87EH0EU-68A40E39A86C"
-      },
-      {
-        "name": "Waschmaschine",
-        "brand": "Bosch",
-        "vib": "WAVH8M90PL",
-        "connected": true,
-        "type": "Washer",
-        "enumber": "WAVH8M90PL/01",
-        "haId": "BOSCH-WAVH8M90PL-68A40E3976AA"
-      },
-      {
-        "name": "Backofen",
-        "brand": "Siemens",
-        "vib": "HB676G5S6",
-        "connected": true,
-        "type": "Oven",
-        "enumber": "HB676G5S6/63",
-        "haId": "SIEMENS-HB676G5S6-68A40E2F702D"
-      }
-    ]
-  }
+    "data": {
+        "homeappliances": [
+            {
+                "name": "Kaffeevollautomat",
+                "brand": "Siemens",
+                "vib": "TI9575X1DE",
+                "connected": true,
+                "type": "CoffeeMaker",
+                "enumber": "TI9575X1DE/10",
+                "haId": "SIEMENS-TI9575X1DE-68A40E251CAD"
+            },
+            {
+                "name": "Fridge Freezer",
+                "brand": "Bosch",
+                "vib": "KGN36HI32",
+                "connected": true,
+                "type": "FridgeFreezer",
+                "enumber": "KGN36HI32/03",
+                "haId": "BOSCH-KGN36HI32-68A40E01D5C6"
+            },
+            {
+                "name": "Trockner",
+                "brand": "Bosch",
+                "vib": "WTX87EH0EU",
+                "connected": true,
+                "type": "Dryer",
+                "enumber": "WTX87EH0EU/01",
+                "haId": "BOSCH-WTX87EH0EU-68A40E39A86C"
+            },
+            {
+                "name": "Waschmaschine",
+                "brand": "Bosch",
+                "vib": "WAVH8M90PL",
+                "connected": true,
+                "type": "Washer",
+                "enumber": "WAVH8M90PL/01",
+                "haId": "BOSCH-WAVH8M90PL-68A40E3976AA"
+            },
+            {
+                "name": "Backofen",
+                "brand": "Siemens",
+                "vib": "HB676G5S6",
+                "connected": true,
+                "type": "Oven",
+                "enumber": "HB676G5S6/63",
+                "haId": "SIEMENS-HB676G5S6-68A40E2F702D"
+            }
+        ]
+    }
 }

@@ -1,94 +1,94 @@
 {
-  "data": {
-    "programs": [
-      {
-        "key": "LaundryCare.Dryer.Program.Cotton",
-        "name": "Baumwolle",
-        "constraints": {
-          "execution": "selectandstart",
-          "available": true
-        }
-      },
-      {
-        "key": "LaundryCare.Dryer.Program.Synthetic",
-        "name": "Pflegeleicht",
-        "constraints": {
-          "execution": "selectandstart",
-          "available": true
-        }
-      },
-      {
-        "key": "LaundryCare.Dryer.Program.Mix",
-        "name": "Schnell/Mix",
-        "constraints": {
-          "execution": "selectandstart",
-          "available": true
-        }
-      },
-      {
-        "key": "LaundryCare.Dryer.Program.TimeWarm",
-        "name": "Zeitprogramm warm",
-        "constraints": {
-          "execution": "selectandstart",
-          "available": true
-        }
-      },
-      {
-        "key": "LaundryCare.Dryer.Program.Outdoor",
-        "name": "Sportswear",
-        "constraints": {
-          "execution": "selectandstart",
-          "available": true
-        }
-      },
-      {
-        "key": "LaundryCare.Dryer.Program.Super40",
-        "name": "ExtraKurz 40",
-        "constraints": {
-          "execution": "selectandstart",
-          "available": true
-        }
-      },
-      {
-        "key": "LaundryCare.Dryer.Program.TimeCold",
-        "name": "Zeitprogramm kalt",
-        "constraints": {
-          "execution": "selectandstart",
-          "available": true
-        }
-      },
-      {
-        "key": "LaundryCare.Dryer.Program.Hygiene",
-        "name": "Allergie Plus",
-        "constraints": {
-          "execution": "selectandstart",
-          "available": true
-        }
-      },
-      {
-        "key": "LaundryCare.Dryer.Program.Blankets",
-        "name": "Steppdecken",
-        "constraints": {
-          "execution": "selectandstart",
-          "available": true
-        }
-      },
-      {
-        "key": "LaundryCare.Dryer.Program.DownFeathers",
-        "name": "Daunenbekleidung",
-        "constraints": {
-          "execution": "selectandstart",
-          "available": true
-        }
-      },
-      {
-        "key": "LaundryCare.Dryer.Program.Delicates",
-        "name": "Feines",
-        "constraints": {
-          "execution": "selectandstart",
-          "available": true
-        }
-      }
-    ]
-  }
+    "data": {
+        "programs": [
+            {
+                "key": "LaundryCare.Dryer.Program.Cotton",
+                "name": "Baumwolle",
+                "constraints": {
+                    "execution": "selectandstart",
+                    "available": true
+                }
+            },
+            {
+                "key": "LaundryCare.Dryer.Program.Synthetic",
+                "name": "Pflegeleicht",
+                "constraints": {
+                    "execution": "selectandstart",
+                    "available": true
+                }
+            },
+            {
+                "key": "LaundryCare.Dryer.Program.Mix",
+                "name": "Schnell/Mix",
+                "constraints": {
+                    "execution": "selectandstart",
+                    "available": true
+                }
+            },
+            {
+                "key": "LaundryCare.Dryer.Program.TimeWarm",
+                "name": "Zeitprogramm warm",
+                "constraints": {
+                    "execution": "selectandstart",
+                    "available": true
+                }
+            },
+            {
+                "key": "LaundryCare.Dryer.Program.Outdoor",
+                "name": "Sportswear",
+                "constraints": {
+                    "execution": "selectandstart",
+                    "available": true
+                }
+            },
+            {
+                "key": "LaundryCare.Dryer.Program.Super40",
+                "name": "ExtraKurz 40",
+                "constraints": {
+                    "execution": "selectandstart",
+                    "available": true
+                }
+            },
+            {
+                "key": "LaundryCare.Dryer.Program.TimeCold",
+                "name": "Zeitprogramm kalt",
+                "constraints": {
+                    "execution": "selectandstart",
+                    "available": true
+                }
+            },
+            {
+                "key": "LaundryCare.Dryer.Program.Hygiene",
+                "name": "Allergie Plus",
+                "constraints": {
+                    "execution": "selectandstart",
+                    "available": true
+                }
+            },
+            {
+                "key": "LaundryCare.Dryer.Program.Blankets",
+                "name": "Steppdecken",
+                "constraints": {
+                    "execution": "selectandstart",
+                    "available": true
+                }
+            },
+            {
+                "key": "LaundryCare.Dryer.Program.DownFeathers",
+                "name": "Daunenbekleidung",
+                "constraints": {
+                    "execution": "selectandstart",
+                    "available": true
+                }
+            },
+            {
+                "key": "LaundryCare.Dryer.Program.Delicates",
+                "name": "Feines",
+                "constraints": {
+                    "execution": "selectandstart",
+                    "available": true
+                }
+            }
+        ]
+    }
 }

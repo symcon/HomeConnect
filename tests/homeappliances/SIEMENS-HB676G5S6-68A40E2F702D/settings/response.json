@@ -1,28 +1,28 @@
 {
     "data": {
-      "settings": [
-        {
-          "key": "BSH.Common.Setting.ChildLock",
-          "value": false,
-          "name": "Kindersicherung"
-        },
-        {
-          "key": "BSH.Common.Setting.PowerState",
-          "value": "BSH.Common.EnumType.PowerState.Standby",
-          "name": "Energiezustand",
-          "displayvalue": "Standby"
-        },
-        {
-          "key": "BSH.Common.Setting.AlarmClock",
-          "value": 0,
-          "unit": "seconds",
-          "name": "Alarm"
-        },
-        {
-          "key": "Cooking.Oven.Setting.SabbathMode",
-          "value": false,
-          "name": "Sabbat Modus"
-        }
-      ]
+        "settings": [
+            {
+                "key": "BSH.Common.Setting.ChildLock",
+                "value": false,
+                "name": "Kindersicherung"
+            },
+            {
+                "key": "BSH.Common.Setting.PowerState",
+                "value": "BSH.Common.EnumType.PowerState.Standby",
+                "name": "Energiezustand",
+                "displayvalue": "Standby"
+            },
+            {
+                "key": "BSH.Common.Setting.AlarmClock",
+                "value": 0,
+                "unit": "seconds",
+                "name": "Alarm"
+            },
+            {
+                "key": "Cooking.Oven.Setting.SabbathMode",
+                "value": false,
+                "name": "Sabbat Modus"
+            }
+        ]
     }
-  }
+}

@@ -1,43 +1,43 @@
 {
     "data": {
-      "key": "ConsumerProducts.CoffeeMaker.Program.Beverage.Espresso",
-      "options": [
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Option.CoffeeTemperature",
-          "value": "ConsumerProducts.CoffeeMaker.EnumType.CoffeeTemperature.92C",
-          "name": "Temperatur",
-          "displayvalue": "92°C"
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Option.BeanAmount",
-          "value": "ConsumerProducts.CoffeeMaker.EnumType.BeanAmount.VeryStrong",
-          "name": "Stärke",
-          "displayvalue": "Sehr stark"
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Option.FillQuantity",
-          "value": 40,
-          "unit": "ml",
-          "name": "Menge"
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Option.MultipleBeverages",
-          "value": false,
-          "name": "Doppelbezug"
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Option.FlowRate",
-          "value": "ConsumerProducts.CoffeeMaker.EnumType.FlowRate.Normal",
-          "name": "Intensität",
-          "displayvalue": "normal"
-        },
-        {
-          "key": "ConsumerProducts.CoffeeMaker.Option.BeanContainerSelection",
-          "value": "ConsumerProducts.CoffeeMaker.EnumType.BeanContainerSelection.Left",
-          "name": "Bohnentank",
-          "displayvalue": "Standardbehälter Links"
-        }
-      ],
-      "name": "Espresso"
+        "key": "ConsumerProducts.CoffeeMaker.Program.Beverage.Espresso",
+        "options": [
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Option.CoffeeTemperature",
+                "value": "ConsumerProducts.CoffeeMaker.EnumType.CoffeeTemperature.92C",
+                "name": "Temperatur",
+                "displayvalue": "92°C"
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Option.BeanAmount",
+                "value": "ConsumerProducts.CoffeeMaker.EnumType.BeanAmount.VeryStrong",
+                "name": "Stärke",
+                "displayvalue": "Sehr stark"
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Option.FillQuantity",
+                "value": 40,
+                "unit": "ml",
+                "name": "Menge"
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Option.MultipleBeverages",
+                "value": false,
+                "name": "Doppelbezug"
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Option.FlowRate",
+                "value": "ConsumerProducts.CoffeeMaker.EnumType.FlowRate.Normal",
+                "name": "Intensität",
+                "displayvalue": "normal"
+            },
+            {
+                "key": "ConsumerProducts.CoffeeMaker.Option.BeanContainerSelection",
+                "value": "ConsumerProducts.CoffeeMaker.EnumType.BeanContainerSelection.Left",
+                "name": "Bohnentank",
+                "displayvalue": "Standardbehälter Links"
+            }
+        ],
+        "name": "Espresso"
     }
-  }
+}

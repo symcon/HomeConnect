@@ -1,38 +1,38 @@
 {
     "data": {
-      "status": [
-        {
-          "key": "BSH.Common.Status.DoorState",
-          "value": "BSH.Common.EnumType.DoorState.Closed",
-          "name": "Tür",
-          "displayvalue": "Geschlossen"
-        },
-        {
-          "key": "BSH.Common.Status.LocalControlActive",
-          "value": false,
-          "name": "Lokale Bedienung aktiv"
-        },
-        {
-          "key": "BSH.Common.Status.RemoteControlStartAllowed",
-          "value": true,
-          "name": "Fernstart"
-        },
-        {
-          "key": "BSH.Common.Status.RemoteControlActive",
-          "value": true,
-          "name": "Fernbedienung"
-        },
-        {
-          "key": "BSH.Common.Status.OperationState",
-          "value": "BSH.Common.EnumType.OperationState.Inactive",
-          "name": "Betriebsstatus",
-          "displayvalue": "Inaktiv"
-        },
-        {
-          "key": "Cooking.Oven.Status.CurrentCavityTemperature",
-          "value": 49,
-          "unit": "°C"
-        }
-      ]
+        "status": [
+            {
+                "key": "BSH.Common.Status.DoorState",
+                "value": "BSH.Common.EnumType.DoorState.Closed",
+                "name": "Tür",
+                "displayvalue": "Geschlossen"
+            },
+            {
+                "key": "BSH.Common.Status.LocalControlActive",
+                "value": false,
+                "name": "Lokale Bedienung aktiv"
+            },
+            {
+                "key": "BSH.Common.Status.RemoteControlStartAllowed",
+                "value": true,
+                "name": "Fernstart"
+            },
+            {
+                "key": "BSH.Common.Status.RemoteControlActive",
+                "value": true,
+                "name": "Fernbedienung"
+            },
+            {
+                "key": "BSH.Common.Status.OperationState",
+                "value": "BSH.Common.EnumType.OperationState.Inactive",
+                "name": "Betriebsstatus",
+                "displayvalue": "Inaktiv"
+            },
+            {
+                "key": "Cooking.Oven.Status.CurrentCavityTemperature",
+                "value": 49,
+                "unit": "°C"
+            }
+        ]
     }
-  }
+}

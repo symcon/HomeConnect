@@ -1,21 +1,21 @@
 {
     "data": {
-      "key": "LaundryCare.Dryer.Program.TimeCold",
-      "options": [
-        {
-          "name": "Dauer anpassen",
-          "key": "BSH.Common.Option.Duration",
-          "constraints": {
-            "min": 1200,
-            "liveupdate": true,
-            "max": 12600,
-            "stepsize": 600,
-            "default": 1200
-          },
-          "unit": "seconds",
-          "type": "Int"
-        }
-      ],
-      "name": "Zeitprogramm kalt"
+        "key": "LaundryCare.Dryer.Program.TimeCold",
+        "options": [
+            {
+                "name": "Dauer anpassen",
+                "key": "BSH.Common.Option.Duration",
+                "constraints": {
+                    "min": 1200,
+                    "liveupdate": true,
+                    "max": 12600,
+                    "stepsize": 600,
+                    "default": 1200
+                },
+                "unit": "seconds",
+                "type": "Int"
+            }
+        ],
+        "name": "Zeitprogramm kalt"
     }
-  }
+}
