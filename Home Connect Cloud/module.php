@@ -41,9 +41,9 @@ declare(strict_types=1);
 
             // A Keep-Alive is sent every 55 seconds. Fail the connection if we miss one
             $this->RegisterTimer('KeepAliveCheck', 60000, 'HC_CheckServerEvents($_IPS[\'TARGET\']);');
-            
+
             $this->RegisterTimer('Reconnect', 0, 'HC_RegisterServerEvents($_IPS[\'TARGET\']);');
-            
+
             $this->RegisterTimer('RateLimit', 0, 'HC_ResetRateLimit($_IPS[\'TARGET\']);');
         }
 
@@ -97,7 +97,7 @@ declare(strict_types=1);
             $parentID = IPS_GetInstance($this->InstanceID)['ConnectionID'];
             if ($SenderID == $parentID) {
                 switch ($MessageID) {
-                    //A failing requests triggers a status change 
+                    //A failing requests triggers a status change
                     case IM_CHANGESTATUS:
                         // Update SSE if it is faulty gradually increase the reconnect interval
                         if ($Data[0] >= IS_EBASE) {
@@ -107,7 +107,7 @@ declare(strict_types=1);
                             $retryTime = pow($retries, 2);
                             $this->SetTimerInterval('Reconnect', ($retryTime > 3600 /*1h*/ ? 3600 : $retryTime) * 1000);
                         }
-                        break;  
+                        break;
                 }
             }
         }
@@ -161,7 +161,6 @@ declare(strict_types=1);
             $this->SetTimerInterval('RateLimit', 0);
         }
 
-
         public function GetConfigurationForm()
         {
             $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
@@ -199,10 +198,10 @@ declare(strict_types=1);
             }
         }
 
-        private function resetRetries() {
+        private function resetRetries()
+        {
             $this->SetTimerInterval('Reconnect', 0);
             $this->WriteAttributeInteger('RetryCounter', 0);
-
         }
 
         private function FetchRefreshToken($code)
