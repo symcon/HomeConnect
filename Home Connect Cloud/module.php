@@ -27,7 +27,11 @@ declare(strict_types=1);
             //Never delete this line!
             parent::Create();
 
+            $this->RegisterAttributeInteger('RetryCounter', 0);
+
             $this->RegisterAttributeString('Token', '');
+
+            $this->RegisterAttributeString('RateError', '');
 
             $this->RequireParent('{2FADB4B7-FDAB-3C64-3E2C-068A4809849A}');
 
@@ -37,6 +41,10 @@ declare(strict_types=1);
 
             // A Keep-Alive is sent every 55 seconds. Fail the connection if we miss one
             $this->RegisterTimer('KeepAliveCheck', 60000, 'HC_CheckServerEvents($_IPS[\'TARGET\']);');
+
+            $this->RegisterTimer('Reconnect', 0, 'HC_RegisterServerEvents($_IPS[\'TARGET\']);');
+
+            $this->RegisterTimer('RateLimit', 0, 'HC_ResetRateLimit($_IPS[\'TARGET\']);');
         }
 
         public function ApplyChanges()
@@ -77,6 +85,7 @@ declare(strict_types=1);
                 case 'KEEP-ALIVE': {
                     $this->SendDebug('KeepAlive', 'OK', 0);
                     $this->SetBuffer('KeepAlive', time());
+                    $this->resetRetries();
                 }
             }
             $data['DataID'] = '{173D59E5-F949-1C1B-9B34-671217C07B0E}';
@@ -88,10 +97,15 @@ declare(strict_types=1);
             $parentID = IPS_GetInstance($this->InstanceID)['ConnectionID'];
             if ($SenderID == $parentID) {
                 switch ($MessageID) {
+                    //A failing requests triggers a status change
                     case IM_CHANGESTATUS:
-                        // Update SSE if it is faulty
+                        // Update SSE if it is faulty gradually increase the reconnect interval
                         if ($Data[0] >= IS_EBASE) {
-                            $this->RegisterServerEvents();
+                            $retries = $this->ReadAttributeInteger('RetryCounter');
+                            $retries++;
+                            $this->WriteAttributeInteger('RetryCounter', $retries);
+                            $retryTime = pow($retries, 2);
+                            $this->SetTimerInterval('Reconnect', ($retryTime > 3600 /*1h*/ ? 3600 : $retryTime) * 1000);
                         }
                         break;
                 }
@@ -113,6 +127,8 @@ declare(strict_types=1);
 
             // Mark connection as good for the moment
             $this->SetBuffer('KeepAlive', time());
+
+            $this->SetTimerInterval('Reconnect', 0);
         }
 
         public function CheckServerEvents()
@@ -134,6 +150,27 @@ declare(strict_types=1);
                 'URL'     => $url ? $url : '',
                 'Headers' => $header ? $header : []
             ]);
+        }
+
+        public function ResetRateLimit()
+        {
+            if ($this->GetStatus() != IS_ACTIVE) {
+                $this->WriteAttributeString('RateError', '');
+            }
+            $this->SetStatus(IS_ACTIVE);
+            $this->SetTimerInterval('RateLimit', 0);
+        }
+
+        public function GetConfigurationForm()
+        {
+            $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
+            $form['status'][] = [
+                'code'    => IS_EBASE,
+                'icon'    => 'error',
+                'caption' => $this->ReadAttributeString('RateError'),
+            ];
+
+            return json_encode($form);
         }
 
         /**
@@ -159,6 +196,12 @@ declare(strict_types=1);
                 //Just print raw post data!
                 echo file_get_contents('php://input');
             }
+        }
+
+        private function resetRetries()
+        {
+            $this->SetTimerInterval('Reconnect', 0);
+            $this->WriteAttributeInteger('RetryCounter', 0);
         }
 
         private function FetchRefreshToken($code)
@@ -261,13 +304,59 @@ declare(strict_types=1);
             $context = stream_context_create($opts);
 
             $result = file_get_contents($url, false, $context);
-
             if ((strpos($http_response_header[0], '200') === false)) {
                 echo $http_response_header[0] . PHP_EOL . $result;
                 return false;
             }
 
             return $result;
+        }
+
+        private function getTimer($name)
+        {
+            foreach (IPS_GetTimerList() as $timerID) {
+                $timer = IPS_GetTimer($timerID);
+                if (($timer['InstanceID'] == $this->InstanceID) && ($timer['Name'] == $name)) {
+                    return $timer;
+                    break;
+                }
+            }
+            return false;
+        }
+
+        private function handleHttpErrors($code, $responseHeader)
+        {
+            switch ($code) {
+                //Too Many Requests
+                case 429:
+                    $head = [];
+                    foreach ($responseHeader as $header) {
+                        $values = explode(':', $header, 2);
+                        if (isset($values[1])) {
+                            $head[trim($values[0])] = trim($values[1]);
+                        }
+                    }
+                    $this->SetTimerInterval('RateLimit', $head['Retry-After'] * 1000);
+                    $timer = $this->getTimer('RateLimit');
+                    //Fallback to current time
+                    $nextRun = $timer === false ? time() : $timer['NextRun'];
+
+                    $this->WriteAttributeString('RateError',
+                    isset($head['Rate-Limit-Type']) ?
+                    sprintf($this->Translate(
+                        'The rate limit of %s was reached. Requests are blocked until %s.'),
+                        $head['Rate-Limit-Type'] == 'day' ?
+                        $this->Translate('1000 calls in 1 day') : $this->Translate('50 calls in 1 minute'),
+                        date('d.m.Y H:i:s', $nextRun),
+                        ) : sprintf($this->Translate('A rate limit was reached. Requests are blocked until %s.'), date('d.m.Y H:i:s', $nextRun))
+                    );
+                    if ($this->GetStatus() != IS_EBASE) {
+                        $this->SetStatus(IS_EBASE);
+                        IPS_ApplyChanges($this->InstanceID);
+                    }
+                    return;
+
+            }
         }
 
         private function getData($endpoint)
@@ -277,13 +366,18 @@ declare(strict_types=1);
                     'method'        => 'GET',
                     'header'        => 'Authorization: Bearer ' . $this->FetchAccessToken() . "\r\n" .
                                        'Accept-Language: ' . $this->ReadPropertyString('Language') . "\r\n",
-                    'ignore_errors' => true
+                    'ignore_errors' => true //Errors will be handled in code
                 ]
             ];
             $context = stream_context_create($opts);
 
             $result = file_get_contents(self::HOME_CONNECT_BASE . $endpoint, false, $context);
-
+            $code = explode(' ', $http_response_header[0])[1];
+            if ($code == 200) {
+                $this->ResetRateLimit();
+            } else {
+                $this->handleHttpErrors($code, $http_response_header);
+            }
             return $result;
         }
 
@@ -297,12 +391,19 @@ declare(strict_types=1);
                                        'Content-Type: application/vnd.bsh.sdk.v1+json' . "\r\n",
                     'Accept-Language: ' . $this->ReadPropertyString('Language') . "\r\n",
                     'content'       => $content,
-                    'ignore_errors' => true
+                    'ignore_errors' => true //Errors will be handled in code
                 ]
             ];
             $context = stream_context_create($opts);
 
             $result = file_get_contents(self::HOME_CONNECT_BASE . $endpoint, false, $context);
+
+            $code = explode(' ', $http_response_header[0])[1];
+            if ($code == 204) {
+                $this->ResetRateLimit();
+            } else {
+                $this->handleHttpErrors($code, $http_response_header);
+            }
 
             if ((strpos($http_response_header[0], '201') === false)) {
                 return $result;
@@ -317,13 +418,21 @@ declare(strict_types=1);
                 'http'=> [
                     'method'        => 'DELETE',
                     'header'        => 'Authorization: Bearer ' . $this->FetchAccessToken() . "\r\n" .
-                                       'Accept-Language: ' . $this->ReadPropertyString('Language') . "\r\n"
+                                       'Accept-Language: ' . $this->ReadPropertyString('Language') . "\r\n",
+                    'ignore_errors' => true //Errors will be handled in code
                 ]
             ];
             $context = stream_context_create($opts);
             $this->SendDebug('Request', print_r($context, true), 0);
 
             $result = file_get_contents(self::HOME_CONNECT_BASE . $endpoint, false, $context);
+            $code = explode(' ', $http_response_header[0])[1];
+
+            if ($code == 204) {
+                $this->ResetRateLimit();
+            } else {
+                $this->handleHttpErrors($code, $http_response_header);
+            }
 
             return $result;
         }

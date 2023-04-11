@@ -582,7 +582,7 @@ declare(strict_types=1);
                     default:
                         $this->SendDebug('ErrorPayload', $payload, 0);
                         $this->SendDebug('ErrorEndpoint', $endpoint, 0);
-                        echo $errorDetector['error']['description'];
+                        echo $errorDetector['error']['description']; //Not translated  due to the dynamic content
                         break;
                 }
             }
@@ -749,7 +749,7 @@ declare(strict_types=1);
                 $displayName = isset($data['name']) ? $data['name'] : $ident;
                 $this->MaintainVariable($ident, $displayName, $variableType, $profileName, $position, true);
                 if (strpos(strtolower($data['key']), 'setting') != false) {
-                    if (strpos(strtolower($data['constraints']['access']), 'write') != false) {
+                    if (isset($data['constraints']['access']) && strpos(strtolower($data['constraints']['access']), 'write') != false) {
                         $this->EnableAction($ident);
                     }
                 } else {
