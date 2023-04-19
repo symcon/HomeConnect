@@ -10,7 +10,7 @@ include_once __DIR__ . '/stubs/MessageStubs.php';
 
 use PHPUnit\Framework\TestCase;
 
-class HomeConnectVarTypeTest extends TestCase
+class HomeConnectOvenTest extends TestCase
 {
     protected function setUp(): void
     {

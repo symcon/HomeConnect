@@ -10,7 +10,7 @@ include_once __DIR__ . '/stubs/MessageStubs.php';
 
 use PHPUnit\Framework\TestCase;
 
-class HomeConnectDryerBaseTest extends TestCase
+class HomeConnectDryerTest extends TestCase
 {
     const COTTON = [
         'DoorState'                 => 'Closed',
