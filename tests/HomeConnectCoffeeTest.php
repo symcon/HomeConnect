@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 
 class HomeConnectCoffeeTest extends TestCase
 {
-    const COFFEE = [
+    public const COFFEE = [
         'OperationState'            => 'Ready',
         'DoorState'                 => 'Closed',
         'PowerState'                => 'An',
@@ -27,7 +27,7 @@ class HomeConnectCoffeeTest extends TestCase
         'EventDescription'          => ''
     ];
 
-    const ESPRESSO = [
+    public const ESPRESSO = [
         'OperationState'            => 'Ready',
         'DoorState'                 => 'Closed',
         'PowerState'                => 'An',

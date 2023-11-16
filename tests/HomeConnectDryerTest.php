@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 
 class HomeConnectDryerTest extends TestCase
 {
-    const COTTON = [
+    public const COTTON = [
         'DoorState'                 => 'Closed',
         'OperationState'            => 'Ready',
         'PowerState'                => 'An',
@@ -26,7 +26,7 @@ class HomeConnectDryerTest extends TestCase
         'EventDescription'          => ''
     ];
 
-    const TIME_COLD = [
+    public const TIME_COLD = [
         'OperationState'            => 'Ready',
         'DoorState'                 => 'Closed',
         'PowerState'                => 'An',
