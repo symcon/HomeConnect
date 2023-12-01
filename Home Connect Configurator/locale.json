@@ -24,7 +24,9 @@
             "CleaningRobot": "Saugroboter",
             "CookProcessor": "Küchenmaschine",
             "An error occurred during the request to Home Connect:": "Bei der Anfrage an Home Connect ist ein Fehler aufgetreten:",
-            "No error description available": "Keine Beschreibung des Fehlers vorhanden"
+            "No error description available": "Keine Beschreibung des Fehlers vorhanden",
+            "https://www.symcon.de/en/service/documentation/module-reference/home-connect/": "https://www.symcon.de/de/service/dokumentation/modulreferenz/home-connect",
+            "Home Connect Configurator": "Home Connect Konfigurator"
         }
     }
 }

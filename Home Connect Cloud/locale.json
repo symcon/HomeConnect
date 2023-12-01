@@ -7,7 +7,8 @@
             "The rate limit of %s was reached. Requests are blocked until %s.": "Das Anfragenlimit von %s wurde erreicht. Weitere Anfragen werden bis %s blockiert.",
             "1000 calls in 1 day": "1000 Anfragen pro Tag",
             "50 calls in 1 minute": "50 Anfragen pro Minute",
-            "A rate limit was reached. Requests are blocked until %s.": "Ein Anfragenlimit wurde erreicht. Weitere Anfragen werden bis %s blockiert"
+            "A rate limit was reached. Requests are blocked until %s.": "Ein Anfragenlimit wurde erreicht. Weitere Anfragen werden bis %s blockiert",
+            "https://www.symcon.de/en/service/documentation/module-reference/home-connect/": "https://www.symcon.de/de/service/dokumentation/modulreferenz/home-connect"
         }
     }
 }
