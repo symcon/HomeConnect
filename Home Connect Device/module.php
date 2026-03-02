@@ -320,11 +320,15 @@ class HomeConnectDevice extends IPSModule
 
     private function createPrograms()
     {
-        $rawPrograms = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/available'), true);
+        $rawPrograms = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs'), true);
         if (isset($rawPrograms['error'])) {
             return;
         }
-        $programs = $rawPrograms['data']['programs'];
+        if (count($rawPrograms['data']['programs']) == 0) {
+            $programs = $rawPrograms['data']['programs']['selected'];
+        } else {
+            $programs = $rawPrograms['data']['programs'];
+        }
         $this->SendDebug(__FUNCTION__, json_encode($programs), 0);
         $profileName = 'HomeConnect.' . $this->ReadPropertyString('DeviceType') . '.Programs';
         if (!IPS_VariableProfileExists($profileName)) {
