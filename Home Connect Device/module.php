@@ -28,6 +28,15 @@ class HomeConnectDevice extends IPSModule
         'ConsumerProducts.CoffeeMaker.Event.BeanContainerEmpty'           => 'Please fill bean container',
         'ConsumerProducts.CoffeeMaker.Event.WaterTankEmpty'               => 'Please fill water tank',
         'ConsumerProducts.CoffeeMaker.Event.DripTrayFull'                 => 'Please empty drip tray',
+        'ConsumerProducts.CoffeeMaker.Event.DeviceShouldBeDescaled'       => 'Please descale device',
+        'ConsumerProducts.CoffeeMaker.Event.DeviceDescalingOverdue'       => 'Descaling overdue',
+        'ConsumerProducts.CoffeeMaker.Event.DeviceDescalingBlockage'      => 'Device blocked because of descaling overdue',
+        'ConsumerProducts.CoffeeMaker.Event.DeviceShouldBeCleaned'        => 'Please clean device',
+        'ConsumerProducts.CoffeeMaker.Event.DeviceCleaningOverdue'        => 'Cleaning overdue',
+        'ConsumerProducts.CoffeeMaker.Event.DeviceShouldBeCalcNCleaned'   => 'Please calc n clean device',
+        'ConsumerProducts.CoffeeMaker.Event.DeviceCalcNCleanOverdue'      => 'Device calc n clean overdue',
+        'ConsumerProducts.CoffeeMaker.Event.DeviceCalcNCleanBlockage'     => 'Device blocked because of calc n clean overdue',
+        'Dishcare.Dishwasher.Event.RinseAidNearlyEmpty'                   => 'Please fill RinseAid tank',
         'Refrigeration.FridgeFreezer.Event.DoorAlarmFreezer'              => 'Please close door',
         'Refrigeration.FridgeFreezer.Event.DoorAlarmRefrigerator'         => 'Please close door',
         'Refrigeration.FridgeFreezer.Event.TemperatureAlarmFreezer'       => 'The freezer temperature is too high',
@@ -176,7 +185,12 @@ class HomeConnectDevice extends IPSModule
                         $this->SetValue('Event', $item['key']);
                         $level = $this->Translate($item['level']);
                         $event = GetValueFormattedEx($this->GetIDForIdent('Event'), $item['key']);
-                        $detailedEvent = isset(self::EVENT_DESCRIPTIONS[$item['key']]) ? $this->Translate(self::EVENT_DESCRIPTIONS[$item['key']]) : '';
+                        if (isset(self::EVENT_DESCRIPTIONS[$item['key']])) {
+                            $detailedEvent = $this->Translate(self::EVENT_DESCRIPTIONS[$item['key']]);
+                        } else {
+                            $this->LogMessage("Event:".$data['Data']);
+                            $detailedEvent = '';
+                        }
                         $eventDescription = sprintf('%s: %s - %s', $level, $event, $detailedEvent);
                         $this->SetValue('EventDescription', $eventDescription);
                     } else {
@@ -826,6 +840,9 @@ class HomeConnectDevice extends IPSModule
                 if (in_array($deviceType, ['Dishwasher', 'CleaningRobot', 'CookProcessor'])) {
                     $associations[] = ['Value' => 'BSH.Common.Event.ProgramAborted', 'Name' => 'Program Aborted'];
                 }
+                if (in_array($deviceType, ['Dishwasher'])) {
+                    $associations[] = ['Value' => 'Dishcare.Dishwasher.Event.RinseAidNearlyEmpty', 'Name' => 'Please fill RinseAid tank'];
+                }
                 if (in_array($deviceType, ['Oven', 'Dishwasher', 'Washer', 'Dryer', 'WasherDryer', 'Cooktop', 'Hood', 'CleaningRobot', 'CookProcessor'])) {
                     $associations[] = ['Value' => 'BSH.Common.Event.ProgramFinished', 'Name' => 'Program Finished'];
                 }
@@ -837,29 +854,27 @@ class HomeConnectDevice extends IPSModule
                 }
                 if (in_array($deviceType, ['CoffeeMaker'])) {
                     $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.BeanContainerEmpty', 'Name' => 'Bean Container Empty'];
-                }
-                if (in_array($deviceType, ['CoffeeMaker'])) {
                     $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.WaterTankEmpty', 'Name' => 'Water Tank Empty'];
-                }
-                if (in_array($deviceType, ['CoffeeMaker'])) {
                     $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DripTrayFull', 'Name' => 'Drip Tray Full'];
+                    $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DeviceShouldBeDescaled', 'Name' => 'Please descale device'];
+                    $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DeviceDescalingOverdue', 'Name' => 'Descaling overdue'];
+                    $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DeviceDescalingBlockage', 'Name' => 'Device blocked because of descaling overdue'];
+                    $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DeviceShouldBeCleaned', 'Name' => 'Please clean device'];
+                    $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DeviceCleaningOverdue', 'Name' => 'Cleaning overdue'];
+                    $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DeviceShouldBeCalcNCleaned', 'Name' => 'Please calc n clean device'];
+                    $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DeviceCalcNCleanOverdue', 'Name' => 'Device calc n clean overdue'];
+                    $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DeviceCalcNCleanBlockage', 'Name' => 'Device blocked because of calc n clean overdue'];
                 }
                 if (in_array($deviceType, ['FridgeFreezer', 'Freezer'])) {
                     $associations[] = ['Value' => 'Refrigeration.FridgeFreezer.Event.DoorAlarmFreezer', 'Name' => 'Door Alarm Freezer'];
+                    $associations[] = ['Value' => 'Refrigeration.FridgeFreezer.Event.TemperatureAlarmFreezer', 'Name' => 'Temperature Alarm Freezer'];
                 }
                 if (in_array($deviceType, ['FridgeFreezer', 'Refrigerator'])) {
                     $associations[] = ['Value' => 'Refrigeration.FridgeFreezer.Event.DoorAlarmRefrigerator', 'Name' => 'Door Alarm Refrigerator'];
                 }
-                if (in_array($deviceType, ['FridgeFreezer', 'Freezer'])) {
-                    $associations[] = ['Value' => 'Refrigeration.FridgeFreezer.Event.TemperatureAlarmFreezer', 'Name' => 'Temperature Alarm Freezer'];
-                }
                 if (in_array($deviceType, ['CleaningRobot'])) {
                     $associations[] = ['Value' => 'ConsumerProducts.CleaningRobot.Event.EmptyDustBoxAndCleanFilter', 'Name' => 'Empty Dust Box and Clean Filter'];
-                }
-                if (in_array($deviceType, ['CleaningRobot'])) {
                     $associations[] = ['Value' => 'ConsumerProducts.CleaningRobot.Event.RobotIsStuck', 'Name' => 'Robot is Stuck'];
-                }
-                if (in_array($deviceType, ['CleaningRobot'])) {
                     $associations[] = ['Value' => 'ConsumerProducts.CleaningRobot.Event.DockingStationNotFound', 'Name' => 'Docking Station not Found'];
                 }
                 $this->createAssociations('HomeConnect.Event.' . $deviceType, $associations);
