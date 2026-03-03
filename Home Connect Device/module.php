@@ -844,9 +844,11 @@ class HomeConnectDevice extends IPSModule
                 }
                 if (in_array($deviceType, ['Oven',  'Cooktop'])) {
                     $associations[] = ['Value' => 'BSH.Common.Event.AlarmClockElapsed', 'Name' => 'Alarm Clock Elapsed'];
-                }
-                if (in_array($deviceType, ['Oven',  'Cooktop'])) {
                     $associations[] = ['Value' => 'BSH.Common.Event.PreheatFinished', 'Name' => 'Pre-heat Finished'];
+                }
+                if (in_array($deviceType, ['Hob'])) {
+                    $associations[] = ['Value' => 'BSH.Common.Event.ProgramFinished', 'Name' => 'Program Finished'];
+                    $associations[] = ['Value' => 'BSH.Common.Event.AlarmClockElapsed', 'Name' => 'Alarm Clock Elapsed'];
                 }
                 if (in_array($deviceType, ['CoffeeMaker'])) {
                     $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.BeanContainerEmpty', 'Name' => 'Bean Container Empty'];
