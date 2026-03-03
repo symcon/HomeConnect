@@ -338,11 +338,7 @@ class HomeConnectDevice extends IPSModule
         if (isset($rawPrograms['error'])) {
             return;
         }
-        if (count($rawPrograms['data']['programs']) == 0) {
-            $programs = $rawPrograms['data']['programs']['selected'];
-        } else {
-            $programs = $rawPrograms['data']['programs'];
-        }
+        $programs = $rawPrograms['data']['programs'];
         $this->SendDebug(__FUNCTION__, json_encode($programs), 0);
         $profileName = 'HomeConnect.' . $this->ReadPropertyString('DeviceType') . '.Programs';
         if (!IPS_VariableProfileExists($profileName)) {
