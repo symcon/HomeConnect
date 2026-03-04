@@ -587,6 +587,8 @@ class HomeConnectDevice extends IPSModule
         $response = $this->SendDataToParent(json_encode($data));
         $errorDetector = json_decode($response, true);
         if (isset($errorDetector['error'])) {
+            // Log error responses so failures are visible in debug output.
+            $this->SendDebug('ErrorResponse', $response, 0);
             switch ($errorDetector['error']['key']) {
                 case 'SDK.Error.UnsupportedProgram':
                 case 'SDK.Error.UnsupportedOperation':
