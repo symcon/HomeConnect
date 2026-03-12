@@ -3,6 +3,9 @@
 declare(strict_types=1);
 class HomeConnectDevice extends IPSModule
 {
+    private const START_IN_RELATIVE = 'BSH.Common.Option.StartInRelative';
+    private const START_IN_RELATIVE_DEVICES = ['Microwave', 'Dishwasher', 'Oven'];
+
     public const RESTRICTIONS = [
         'BSH.Common.Status.RemoteControlStartAllowed',
         'BSH.Common.Status.RemoteControlActive',
@@ -246,7 +249,7 @@ class HomeConnectDevice extends IPSModule
                         $payload = [
                             'data' => [
                                 'key'     => $this->GetValue('SelectedProgram'),
-                                'options' => in_array($this->ReadPropertyString('DeviceType'), ['Oven', 'Hood']) ? $this->createOptionPayload() : []
+                                'options' => $this->sendOptionsOnProgramStart() ? $this->createOptionPayload() : []
                             ]
                         ];
                         $this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/active', json_encode($payload));
@@ -281,21 +284,24 @@ class HomeConnectDevice extends IPSModule
                 }
                 $availableOptions = $this->getValidOptions();
                 if (isset($availableOptions[$Ident])) {
+                    $optionKeys = json_decode($this->ReadAttributeString('OptionKeys'), true);
+                    if (!isset($optionKeys[$Ident])) {
+                        break;
+                    }
+                    $optionKey = $optionKeys[$Ident];
                     if (!in_array($this->ReadPropertyString('DeviceType'), ['Oven', 'Hood'])) {
-                        $optionKeys = json_decode($this->ReadAttributeString('OptionKeys'), true);
-                        $payload = [
-                            'data' => [
-                                'key'   => $optionKeys[$Ident],
-                                'value' => $Value
-                            ]
-                        ];
-                        $profileName = IPS_GetVariable($this->GetIDForIdent($Ident))['VariableProfile'];
-                        $profile = IPS_GetVariableProfile($profileName);
-                        $suffix = str_replace(' ', '', $profile['Suffix']);
-                        if ($suffix) {
-                            $payload['data']['unit'] = $suffix;
+                        if ($optionKey == self::START_IN_RELATIVE && $this->useStartInRelativeStartCommand()) {
+                            if (@IPS_GetObjectIDByIdent('OperationState', $this->InstanceID) && ($this->GetValue('OperationState') == 'BSH.Common.EnumType.OperationState.DelayedStart')) {
+                                $payload = ['data' => $this->createOptionRequestData($Ident, $optionKey, $Value)];
+                                $endpoint = 'homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/active/options/' . $optionKey;
+                                $this->requestDataFromParent($endpoint, json_encode($payload));
+                            } else {
+                                $this->SendDebug(__FUNCTION__, self::START_IN_RELATIVE . ' is sent with programs/active on start command', 0);
+                            }
+                        } else {
+                            $payload = ['data' => $this->createOptionRequestData($Ident, $optionKey, $Value)];
+                            $this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected/options/' . $optionKey, json_encode($payload));
                         }
-                        $this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected/options/' . $optionKeys[$Ident], json_encode($payload));
                     } else {
                     }
                 }
@@ -313,7 +319,9 @@ class HomeConnectDevice extends IPSModule
                 }
                 break;
         }
-        $this->SetValue($Ident, $Value);
+        if ($Ident != 'Control') {
+            $this->SetValue($Ident, $Value);
+        }
     }
 
     public function InitializeDevice()
@@ -368,12 +376,39 @@ class HomeConnectDevice extends IPSModule
         $this->SendDebug('OptionKeys', json_encode($optionKeys), 0);
         $optionsPayload = [];
         foreach ($availableOptions as $ident => $key) {
-            $optionsPayload[] = [
-                'key'   => $optionKeys[$ident],
-                'value' => $this->GetValue($ident)
-            ];
+            if (!isset($optionKeys[$ident])) {
+                continue;
+            }
+            $optionsPayload[] = $this->createOptionRequestData($ident, $optionKeys[$ident], $this->GetValue($ident));
         }
         return $optionsPayload;
+    }
+
+    private function createOptionRequestData($ident, $key, $value)
+    {
+        $data = [
+            'key'   => $key,
+            'value' => $value
+        ];
+        $profileName = IPS_GetVariable($this->GetIDForIdent($ident))['VariableProfile'];
+        if ($profileName) {
+            $profile = IPS_GetVariableProfile($profileName);
+            $suffix = str_replace(' ', '', $profile['Suffix']);
+            if ($suffix) {
+                $data['unit'] = $suffix;
+            }
+        }
+        return $data;
+    }
+
+    private function useStartInRelativeStartCommand()
+    {
+        return in_array($this->ReadPropertyString('DeviceType'), self::START_IN_RELATIVE_DEVICES);
+    }
+
+    private function sendOptionsOnProgramStart()
+    {
+        return in_array($this->ReadPropertyString('DeviceType'), ['Oven', 'Hood', 'Dishwasher', 'Microwave']);
     }
 
     private function updateOptionVariables($program)
