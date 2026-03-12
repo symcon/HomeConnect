@@ -188,7 +188,7 @@ class HomeConnectDevice extends IPSModule
                         if (isset(self::EVENT_DESCRIPTIONS[$item['key']])) {
                             $detailedEvent = $this->Translate(self::EVENT_DESCRIPTIONS[$item['key']]);
                         } else {
-                            $this->LogMessage("Event:".$data['Data']);
+                            $this->LogMessage("Event:".$data['Data'], KL_NOTIFY);
                             $detailedEvent = '';
                         }
                         $eventDescription = sprintf('%s: %s - %s', $level, $event, $detailedEvent);
@@ -321,6 +321,7 @@ class HomeConnectDevice extends IPSModule
         if ($this->createStates()) {
             $this->setupSettings();
             if ($this->createPrograms()) {
+                $this->ensureControlVariable(2);
                 //If the device is inactive, we cannot retrieve information about the current selected Program
                 if (@IPS_GetObjectIDByIdent('OperationState', $this->InstanceID) && ($this->GetValue('OperationState') == 'BSH.Common.EnumType.OperationState.Ready')) {
                     $this->updateOptionValues($this->getSelectedProgram());
@@ -414,8 +415,18 @@ class HomeConnectDevice extends IPSModule
             IPS_SetHidden($variableID, !in_array($ident, $availableOptions));
         }
 
-        if (!IPS_VariableProfileExists("HomeConnect.Control.$deviceType")) {
-            IPS_CreateVariableProfile("HomeConnect.Control.$deviceType", VARIABLETYPE_STRING);
+        $this->ensureControlVariable($position);
+    }
+
+    private function ensureControlVariable($position)
+    {
+        $deviceType = $this->ReadPropertyString('DeviceType');
+        if (!$deviceType) {
+            return;
+        }
+        $profileName = "HomeConnect.Control.$deviceType";
+        if (!IPS_VariableProfileExists($profileName)) {
+            IPS_CreateVariableProfile($profileName, VARIABLETYPE_STRING);
             $associations = [
                 ['Value' => 'Start', 'Name' => $this->Translate('Start')],
                 ['Value' => 'Stop', 'Name' => $this->Translate('Stop')]
@@ -426,13 +437,10 @@ class HomeConnectDevice extends IPSModule
             if (in_array($deviceType, ['Oven', 'CleaningRobot', 'Dishwasher', 'Dryer', 'Washer', 'WasherDryer'])) {
                 $associations[] = ['Value' => 'Resume', 'Name' => $this->Translate('Resume')];
             }
-            $this->createAssociations("HomeConnect.Control.$deviceType", $associations);
+            $this->createAssociations($profileName, $associations);
         }
-        if (!@IPS_GetObjectIDByIdent('Control', $this->InstanceID)) {
-            $this->MaintainVariable('Control', $this->Translate('Control'), VARIABLETYPE_STRING, "HomeConnect.Control.$deviceType", $position, true);
-            $this->SetValue('Control', 'Start');
-            $this->EnableAction('Control');
-        }
+        $this->MaintainVariable('Control', $this->Translate('Control'), VARIABLETYPE_STRING, $profileName, $position, true);
+        $this->EnableAction('Control');
     }
 
     private function getSelectedProgram()
