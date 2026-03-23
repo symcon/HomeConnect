@@ -191,7 +191,7 @@ class HomeConnectDevice extends IPSModule
                         if (isset(self::EVENT_DESCRIPTIONS[$item['key']])) {
                             $detailedEvent = $this->Translate(self::EVENT_DESCRIPTIONS[$item['key']]);
                         } else {
-                            $this->LogMessage("Event:".$data['Data'], KL_NOTIFY);
+                            $this->LogMessage('Event:' . $data['Data'], KL_NOTIFY);
                             $detailedEvent = '';
                         }
                         $eventDescription = sprintf('%s: %s - %s', $level, $event, $detailedEvent);
@@ -232,7 +232,7 @@ class HomeConnectDevice extends IPSModule
                             'options' => []
                         ]
                     ];
-                    $this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected', json_encode($payload));
+                    $this->RequestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected', json_encode($payload));
                     $this->updateOptionValues($this->getSelectedProgram());
                 } else {
                     $this->updateOptionValues($this->getProgram($Value));
@@ -252,7 +252,7 @@ class HomeConnectDevice extends IPSModule
                                 'options' => $this->sendOptionsOnProgramStart() ? $this->createOptionPayload() : []
                             ]
                         ];
-                        $this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/active', json_encode($payload));
+                        $this->RequestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/active', json_encode($payload));
                         break;
 
                     case 'Stop':
@@ -260,7 +260,7 @@ class HomeConnectDevice extends IPSModule
                             echo $this->Translate('RemoteControl not active / RemoteStart not active / LocalControl active');
                             return;
                         }
-                        $this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/active', 'DELETE');
+                        $this->RequestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/active', 'DELETE');
                         break;
 
                     case 'Pause':
@@ -294,13 +294,13 @@ class HomeConnectDevice extends IPSModule
                             if (@IPS_GetObjectIDByIdent('OperationState', $this->InstanceID) && ($this->GetValue('OperationState') == 'BSH.Common.EnumType.OperationState.DelayedStart')) {
                                 $payload = ['data' => $this->createOptionRequestData($Ident, $optionKey, $Value)];
                                 $endpoint = 'homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/active/options/' . $optionKey;
-                                $this->requestDataFromParent($endpoint, json_encode($payload));
+                                $this->RequestDataFromParent($endpoint, json_encode($payload));
                             } else {
                                 $this->SendDebug(__FUNCTION__, self::START_IN_RELATIVE . ' is sent with programs/active on start command', 0);
                             }
                         } else {
                             $payload = ['data' => $this->createOptionRequestData($Ident, $optionKey, $Value)];
-                            $this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected/options/' . $optionKey, json_encode($payload));
+                            $this->RequestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected/options/' . $optionKey, json_encode($payload));
                         }
                     } else {
                     }
@@ -315,7 +315,7 @@ class HomeConnectDevice extends IPSModule
                             'value' => $Value
                         ]
                     ];
-                    $this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/settings/' . $availableSettings[$Ident]['key'], json_encode($payload));
+                    $this->RequestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/settings/' . $availableSettings[$Ident]['key'], json_encode($payload));
                 }
                 break;
         }
@@ -341,9 +341,42 @@ class HomeConnectDevice extends IPSModule
         }
     }
 
+    public function RequestDataFromParent(string $endpoint, string $payload = '')
+    {
+        $this->SendDebug(__FUNCTION__, sprintf('endpoint: %s, payload: %s', $endpoint, $payload), 0);
+        $data = [
+            'DataID'      => '{41DDAA3B-65F0-B833-36EE-CEB57A80D022}',
+            'Endpoint'    => $endpoint
+        ];
+        if ($payload) {
+            $data['Payload'] = $payload;
+        }
+        $response = $this->SendDataToParent(json_encode($data));
+        $errorDetector = json_decode($response, true);
+        if (isset($errorDetector['error'])) {
+            // Log error responses so failures are visible in debug output.
+            $this->SendDebug('ErrorResponse', $response, 0);
+            switch ($errorDetector['error']['key']) {
+                case 'SDK.Error.UnsupportedProgram':
+                case 'SDK.Error.UnsupportedOperation':
+                case 'SDK.Error.NoProgramSelected':
+                    // case 'SDK.Error.HomeAppliance.Connection.Initialization.Failed':
+                    return $response;
+
+                default:
+                    $this->SendDebug('ErrorPayload', $payload, 0);
+                    $this->SendDebug('ErrorEndpoint', $endpoint, 0);
+                    echo $errorDetector['error']['description']; //Not translated  due to the dynamic content
+                    break;
+            }
+        }
+        $this->SendDebug('responseData', $response, 0);
+        return $response;
+    }
+
     private function createPrograms()
     {
-        $rawPrograms = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs'), true);
+        $rawPrograms = json_decode($this->RequestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs'), true);
         if (isset($rawPrograms['error'])) {
             return;
         }
@@ -480,14 +513,14 @@ class HomeConnectDevice extends IPSModule
 
     private function getSelectedProgram()
     {
-        $selectedProgram = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected'), true);
+        $selectedProgram = json_decode($this->RequestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected'), true);
         return isset($selectedProgram['data']) ? $selectedProgram['data'] : false;
     }
 
     private function getProgram($key)
     {
         $endpoint = 'homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/available/' . $key;
-        $data = json_decode($this->requestDataFromParent($endpoint), true);
+        $data = json_decode($this->RequestDataFromParent($endpoint), true);
         return isset($data['data']) ? $data['data'] : false;
     }
 
@@ -496,7 +529,7 @@ class HomeConnectDevice extends IPSModule
         if (in_array($key, self::EXCLUDE)) {
             return false;
         }
-        $data = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected/options/' . $key), true)['data'];
+        $data = json_decode($this->RequestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected/options/' . $key), true)['data'];
         return $data;
     }
     private function updateOptionValues($program)
@@ -519,7 +552,8 @@ class HomeConnectDevice extends IPSModule
                 } else {
                     $value = $option['constraints']['allowedvalues'][0];
                 }
-                $this->SendDebug('Value', strval($value), 0);
+                $debugValue = is_bool($value)?($value?'true':'false'):$value;
+                $this->SendDebug(__FUNCTION__, sprintf('Ident: %s, Value: %s', $ident, $debugValue), 0);
                 $this->SetValue($ident, $value);
             }
         }
@@ -529,7 +563,7 @@ class HomeConnectDevice extends IPSModule
     private function createStates($states = '')
     {
         if (!$states) {
-            $data = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/status'), true);
+            $data = json_decode($this->RequestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/status'), true);
             if (isset($data['error'])) {
                 return false;
             }
@@ -617,39 +651,6 @@ class HomeConnectDevice extends IPSModule
         return substr($string, strrpos($string, '.') + 1, strlen($string) - strrpos($string, '.'));
     }
 
-    public function requestDataFromParent($endpoint, $payload = '')
-    {
-        $this->SendDebug(__FUNCTION__, sprintf('endpoint: %s, payload: %s', $endpoint, $payload), 0);
-        $data = [
-            'DataID'      => '{41DDAA3B-65F0-B833-36EE-CEB57A80D022}',
-            'Endpoint'    => $endpoint
-        ];
-        if ($payload) {
-            $data['Payload'] = $payload;
-        }
-        $response = $this->SendDataToParent(json_encode($data));
-        $errorDetector = json_decode($response, true);
-        if (isset($errorDetector['error'])) {
-            // Log error responses so failures are visible in debug output.
-            $this->SendDebug('ErrorResponse', $response, 0);
-            switch ($errorDetector['error']['key']) {
-                case 'SDK.Error.UnsupportedProgram':
-                case 'SDK.Error.UnsupportedOperation':
-                case 'SDK.Error.NoProgramSelected':
-                    // case 'SDK.Error.HomeAppliance.Connection.Initialization.Failed':
-                    return $response;
-
-                default:
-                    $this->SendDebug('ErrorPayload', $payload, 0);
-                    $this->SendDebug('ErrorEndpoint', $endpoint, 0);
-                    echo $errorDetector['error']['description']; //Not translated  due to the dynamic content
-                    break;
-            }
-        }
-        $this->SendDebug('responseData', $response, 0);
-        return $response;
-    }
-
     private function createAssociations($profileName, $associations)
     {
         foreach ($associations as $association) {
@@ -659,7 +660,7 @@ class HomeConnectDevice extends IPSModule
 
     private function setupSettings()
     {
-        $allSettings = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/settings'), true);
+        $allSettings = json_decode($this->RequestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/settings'), true);
         $this->SendDebug(__FUNCTION__, sprintf('allSettings: %s', json_encode($allSettings)), 0);
         if (isset($allSettings['data']['settings'])) {
             $availableSettings = json_decode($this->ReadAttributeString('Settings'), true);
@@ -679,7 +680,7 @@ class HomeConnectDevice extends IPSModule
                     $profileName .= '.' . $this->ReadPropertyString('DeviceType');
                 }
                 $variableType = $this->getVariableType($value);
-                $settingDetails = json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/settings/' . $setting['key']), true);
+                $settingDetails = json_decode($this->RequestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/settings/' . $setting['key']), true);
                 $this->createVariableFromConstraints($profileName, $settingDetails['data'], 'Setting', $position);
                 $position++;
                 $this->SetValue($ident, $value);
@@ -947,12 +948,12 @@ class HomeConnectDevice extends IPSModule
                 'value'=> true
             ]
         ];
-        $this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/commands/' . $command, json_encode($payload));
+        $this->RequestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/commands/' . $command, json_encode($payload));
         return true;
     }
 
     private function getAvailableCommands()
     {
-        return json_decode($this->requestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/commands'), true)['data']['commands'];
+        return json_decode($this->RequestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/commands'), true)['data']['commands'];
     }
 }

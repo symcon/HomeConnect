@@ -70,8 +70,7 @@ class HomeConnectConfigurator extends IPSModule
                     'items' => [
                         [
                             'type'    => 'Label',
-                            'caption' => $this->Translate('An error occurred during the request to Home Connect:') .
-                            PHP_EOL . $errorDescription
+                            'caption' => $this->Translate('An error occurred during the request to Home Connect:') . PHP_EOL . $errorDescription
                         ]
                     ]
                 ]
