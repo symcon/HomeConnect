@@ -376,6 +376,10 @@ class HomeConnectCloud extends WebOAuthModule
 
         $result = file_get_contents(self::HOME_CONNECT_BASE . $endpoint, false, $context);
         $code = explode(' ', $http_response_header[0])[1];
+        $this->SendDebug('HTTP GET', $endpoint . ' -> ' . $code, 0);
+        if ($code != 200) {
+            $this->SendDebug('HTTP GET Response', $result, 0);
+        }
         if ($code == 200) {
             $this->ResetRateLimit();
         } else {
@@ -402,6 +406,10 @@ class HomeConnectCloud extends WebOAuthModule
         $result = file_get_contents(self::HOME_CONNECT_BASE . $endpoint, false, $context);
 
         $code = explode(' ', $http_response_header[0])[1];
+        $this->SendDebug('HTTP PUT', $endpoint . ' -> ' . $code, 0);
+        if ($code != 200 && $code != 201 && $code != 204) {
+            $this->SendDebug('HTTP PUT Response', $result, 0);
+        }
         if ($code == 204) {
             $this->ResetRateLimit();
         } else {
@@ -430,6 +438,10 @@ class HomeConnectCloud extends WebOAuthModule
 
         $result = file_get_contents(self::HOME_CONNECT_BASE . $endpoint, false, $context);
         $code = explode(' ', $http_response_header[0])[1];
+        $this->SendDebug('HTTP DELETE', $endpoint . ' -> ' . $code, 0);
+        if ($code != 200 && $code != 204) {
+            $this->SendDebug('HTTP DELETE Response', $result, 0);
+        }
 
         if ($code == 204) {
             $this->ResetRateLimit();
