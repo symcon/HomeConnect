@@ -137,6 +137,15 @@ class HomeConnectDevice extends IPSModule
         $this->SendDebug('ReceiveData', $String, 0);
         $data = json_decode($String, true);
         switch ($data['Event']) {
+            case 'DISCONNECTED':
+                if (@IPS_GetObjectIDByIdent('OperationState', $this->InstanceID)) {
+                    // Offline device set OperationState to Inactive
+                    $this->SetValue('OperationState','BSH.Common.EnumType.OperationState.Inactive');
+                }
+            case 'CONNECTED':
+                // Device comes online, request states
+                $this->createStates();
+                break;
             case 'STATUS':
             case 'NOTIFY':
                 $items = json_decode($data['Data'], true)['items'];
