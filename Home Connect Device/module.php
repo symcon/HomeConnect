@@ -120,12 +120,13 @@ class HomeConnectDevice extends IPSModule
         //Never delete this line!
         parent::ApplyChanges();
 
-        if (IPS_GetKernelRunlevel() == KR_READY) {
-            if ($this->HasActiveParent()) {
-                if ($this->ReadPropertyString('HaID')) {
-                    $this->SetSummary($this->ReadPropertyString('HaID'));
-                    $this->InitializeDevice();
-                }
+        if (IPS_GetKernelRunlevel() === KR_READY) {
+            if ($this->HasActiveParent() && $this->ReadPropertyString('HaID')) {
+                $this->SetSummary($this->ReadPropertyString('HaID'));
+                $this->InitializeDevice();
+                $this->SetStatus(IS_ACTIVE);
+            } else {
+                $this->SetStatus(IS_INACTIVE);
             }
         }
 
