@@ -560,8 +560,11 @@ class HomeConnectDevice extends IPSModule
                     $value = $option['value'];
                 } elseif (isset($option['constraints']['default'])) {
                     $value = $option['constraints']['default'];
-                } else {
+                } elseif (isset($option['constraints']['allowedvalues']) && is_array($option['constraints']['allowedvalues']) && count($option['constraints']['allowedvalues']) > 0) {
                     $value = $option['constraints']['allowedvalues'][0];
+                } else {
+                    $this->SendDebug(__FUNCTION__, sprintf('Skipping option without usable value: %s', json_encode($option)), 0);
+                    continue;
                 }
                 $debugValue = is_bool($value) ? ($value ? 'true' : 'false') : $value;
                 $this->SendDebug(__FUNCTION__, sprintf('Ident: %s, Value: %s', $ident, $debugValue), 0);
