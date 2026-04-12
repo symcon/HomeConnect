@@ -9,13 +9,5 @@ jobs:
     steps:
     - name: Checkout module
       uses: actions/checkout@master
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.2'
-    - name: Install PHP CS Fixer
-      run: |
-        curl -L https://github.com/FriendsOfPHP/PHP-CS-Fixer/releases/latest/download/php-cs-fixer.phar -o php-cs-fixer.phar
-        chmod +x php-cs-fixer.phar
-    - name: Run style check
-      run: php php-cs-fixer.phar fix --config=.php-cs-fixer.php --dry-run --diff --allow-risky=yes
+    - name: Check style
+      uses: symcon/action-style@v3
