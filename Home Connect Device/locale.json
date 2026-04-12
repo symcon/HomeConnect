@@ -70,7 +70,8 @@
             "Action can currently not be performed": "Aktion kann zur Zeit nicht ausgeführt werden",
             "Initialize Device": "Gerät Initialisieren",
             "https://www.symcon.de/en/service/documentation/module-reference/home-connect/home-connect-device/": "https://www.symcon.de/de/service/dokumentation/modulreferenz/home-connect/home-connect-device/",
-            "Home Connect Device": "Home Connect Gerät"
+            "Home Connect Device": "Home Connect Gerät",
+            "Use duration option": "Option Dauer verwenden"
         }
     }
 }
