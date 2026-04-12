@@ -3,6 +3,7 @@
 declare(strict_types=1);
 class HomeConnectDevice extends IPSModule
 {
+    private const OPTION_DURATION = 'BSH.Common.Option.Duration';
     public const RESTRICTIONS = [
         'BSH.Common.Status.RemoteControlStartAllowed',
         'BSH.Common.Status.RemoteControlActive',
@@ -216,6 +217,10 @@ class HomeConnectDevice extends IPSModule
     {
         $applyValue = false;
         switch ($Ident) {
+            case 'UseDuration':
+                $applyValue = true;
+                break;
+
             case 'SelectedProgram':
                 if (!$this->switchable()) {
                     //TODO: better error message
@@ -295,6 +300,10 @@ class HomeConnectDevice extends IPSModule
                         break;
                     }
                     $optionKey = $optionKeys[$Ident];
+                    if ($optionKey == self::OPTION_DURATION && @IPS_GetObjectIDByIdent('UseDuration', $this->InstanceID) && !$this->GetValue('UseDuration')) {
+                        $applyValue = true;
+                        break;
+                    }
                     if (!in_array($this->ReadPropertyString('DeviceType'), ['Oven', 'Hood'])) {
                         if ($optionKey == self::START_IN_RELATIVE && $this->useStartInRelativeStartCommand()) {
                             if (@IPS_GetObjectIDByIdent('OperationState', $this->InstanceID) && ($this->GetValue('OperationState') == 'BSH.Common.EnumType.OperationState.DelayedStart')) {
@@ -419,8 +428,12 @@ class HomeConnectDevice extends IPSModule
         $optionKeys = json_decode($this->ReadAttributeString('OptionKeys'), true);
         $this->SendDebug('OptionKeys', json_encode($optionKeys), 0);
         $optionsPayload = [];
+        $useDuration = !@IPS_GetObjectIDByIdent('UseDuration', $this->InstanceID) || $this->GetValue('UseDuration');
         foreach ($availableOptions as $ident => $key) {
             if (!isset($optionKeys[$ident])) {
+                continue;
+            }
+            if ($optionKeys[$ident] == self::OPTION_DURATION && !$useDuration) {
                 continue;
             }
             $optionsPayload[] = $this->createOptionRequestData($ident, $optionKeys[$ident], $this->GetValue($ident));
@@ -455,13 +468,22 @@ class HomeConnectDevice extends IPSModule
         return in_array($this->ReadPropertyString('DeviceType'), ['Oven', 'Hood', 'Dishwasher', 'Microwave']);
     }
 
+    /**
+     * @param string|array $program Der Programmschlüssel oder das bereits abgerufene Programmdaten-Array.
+     */
     private function updateOptionVariables($program)
     {
-        $rawOptions = $this->getProgram($program);
+        if (is_array($program)) {
+            $rawOptions = $program;
+        } else {
+            $rawOptions = $this->getProgram($program);
+        }
+
         $this->SendDebug('RawOptions', json_encode($rawOptions), 0);
         if (!$rawOptions) {
             $this->SetValue('SelectedProgram', '');
             $this->setOptionsDisabled(true);
+            $this->syncUseDurationVariable(false, 0);
             return;
         }
         $this->setOptionsDisabled(false);
@@ -494,7 +516,23 @@ class HomeConnectDevice extends IPSModule
             IPS_SetHidden($variableID, !in_array($ident, $availableOptions));
         }
 
+        $this->syncUseDurationVariable(in_array('OptionDuration', $availableOptions), $position);
+        $position++;
         $this->ensureControlVariable($position);
+    }
+
+    private function syncUseDurationVariable($visible, $position)
+    {
+        $ident = 'UseDuration';
+        $exists = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+        $this->MaintainVariable($ident, $this->Translate('Use duration option'), VARIABLETYPE_BOOLEAN, 'HomeConnect.YesNo', $position, true);
+        $this->EnableAction($ident);
+        if (!$exists) {
+            $this->SetValue($ident, false);
+        }
+        $variableID = $this->GetIDForIdent($ident);
+        IPS_SetHidden($variableID, !$visible);
+        IPS_SetDisabled($variableID, !$visible);
     }
 
     private function ensureControlVariable($position)
@@ -543,14 +581,18 @@ class HomeConnectDevice extends IPSModule
         $data = json_decode($this->RequestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected/options/' . $key), true)['data'];
         return $data;
     }
+    /**
+     * @param string|array $program Der Programmschlüssel oder das bereits abgerufene Programmdaten-Array.
+     */
     private function updateOptionValues($program)
     {
         if (!$program) {
             $this->setOptionsDisabled(true);
+            $this->syncUseDurationVariable(false, 0);
             return;
         }
         $this->SetValue('SelectedProgram', $program['key']);
-        $this->updateOptionVariables($program['key']);
+        $this->updateOptionVariables($program);
         $optionKeys = [];
         foreach ($program['options'] as $option) {
             $ident = 'Option' . $this->getLastSnippet($option['key']);
