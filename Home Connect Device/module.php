@@ -429,16 +429,53 @@ class HomeConnectDevice extends IPSModule
         $this->SendDebug('OptionKeys', json_encode($optionKeys), 0);
         $optionsPayload = [];
         $useDuration = !@IPS_GetObjectIDByIdent('UseDuration', $this->InstanceID) || $this->GetValue('UseDuration');
+        // Re-check the selected program definition so the start payload only contains options accepted by programs/active.
+        $startableOptionKeys = $this->getStartableOptionKeys();
         foreach ($availableOptions as $ident => $key) {
             if (!isset($optionKeys[$ident])) {
                 continue;
             }
-            if ($optionKeys[$ident] == self::OPTION_DURATION && !$useDuration) {
+            $optionKey = $optionKeys[$ident];
+            if ($optionKey == self::OPTION_DURATION && !$useDuration) {
                 continue;
             }
-            $optionsPayload[] = $this->createOptionRequestData($ident, $optionKeys[$ident], $this->GetValue($ident));
+            if ($startableOptionKeys !== [] && !isset($startableOptionKeys[$optionKey])) {
+                $this->SendDebug(__FUNCTION__, sprintf('Skipping unsupported start option: %s', $optionKey), 0);
+                continue;
+            }
+            $optionsPayload[] = $this->createOptionRequestData($ident, $optionKey, $this->GetValue($ident));
         }
         return $optionsPayload;
+    }
+
+    private function getStartableOptionKeys()
+    {
+        $selectedProgram = $this->GetValue('SelectedProgram');
+        if ($selectedProgram == '') {
+            return [];
+        }
+
+        $program = $this->getProgram($selectedProgram);
+        if (!is_array($program) || !isset($program['options']) || !is_array($program['options'])) {
+            return [];
+        }
+
+        $startableOptionKeys = [];
+        foreach ($program['options'] as $option) {
+            if (!isset($option['key'])) {
+                continue;
+            }
+
+            $constraints = isset($option['constraints']) && is_array($option['constraints']) ? $option['constraints'] : [];
+            $access = isset($constraints['access']) ? strtolower((string) $constraints['access']) : '';
+            if ($access !== '' && strpos($access, 'write') === false) {
+                continue;
+            }
+
+            $startableOptionKeys[$option['key']] = true;
+        }
+
+        return $startableOptionKeys;
     }
 
     private function createOptionRequestData($ident, $key, $value)
@@ -487,7 +524,7 @@ class HomeConnectDevice extends IPSModule
             return;
         }
         $this->setOptionsDisabled(false);
-        $options = $rawOptions['options'];
+        $options = isset($rawOptions['options']) && is_array($rawOptions['options']) ? $rawOptions['options'] : [];
         $position = 10;
         $availableOptions = [];
         $deviceType = $this->ReadPropertyString('DeviceType');
@@ -594,7 +631,8 @@ class HomeConnectDevice extends IPSModule
         $this->SetValue('SelectedProgram', $program['key']);
         $this->updateOptionVariables($program);
         $optionKeys = [];
-        foreach ($program['options'] as $option) {
+        $programOptions = isset($program['options']) && is_array($program['options']) ? $program['options'] : [];
+        foreach ($programOptions as $option) {
             $ident = 'Option' . $this->getLastSnippet($option['key']);
             $optionKeys[$ident] = $option['key'];
             if (@IPS_GetObjectIDByIdent($ident, $this->InstanceID) && !IPS_GetObject($this->GetIDForIdent($ident))['ObjectIsHidden']) {
@@ -805,7 +843,6 @@ class HomeConnectDevice extends IPSModule
                 $variableType = VARIABLETYPE_STRING;
                 break;
         }
-
         switch ($variableType) {
             case VARIABLETYPE_INTEGER:
             case VARIABLETYPE_FLOAT:
