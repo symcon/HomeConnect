@@ -3,7 +3,6 @@
 declare(strict_types=1);
 class HomeConnectDevice extends IPSModule
 {
-    private const OPTION_DURATION = 'BSH.Common.Option.Duration';
     public const RESTRICTIONS = [
         'BSH.Common.Status.RemoteControlStartAllowed',
         'BSH.Common.Status.RemoteControlActive',
@@ -46,6 +45,7 @@ class HomeConnectDevice extends IPSModule
         'ConsumerProducts.CleaningRobot.Event.DockingStationNotFound'     => 'The robot cannot find the charging station'
 
     ];
+    private const OPTION_DURATION = 'BSH.Common.Option.Duration';
     private const START_IN_RELATIVE = 'BSH.Common.Option.StartInRelative';
     private const START_IN_RELATIVE_DEVICES = ['Microwave', 'Dishwasher', 'Oven'];
 

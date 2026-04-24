@@ -63,11 +63,11 @@ class HomeConnectCoffeeTest extends TestCase
 
     public function testBaseFunctionality()
     {
-        $cloudInterface = IPS\InstanceManager::getInstanceInterface(IPS_GetInstanceListByModuleID('{CE76810D-B685-9BE0-CC04-38B204DEAD5E}')[0]);
+        $cloudId = IPS_GetInstanceListByModuleID('{CE76810D-B685-9BE0-CC04-38B204DEAD5E}')[0];
+        $cloudInterface = IPS\InstanceManager::getInstanceInterface($cloudId);
         $cloudInterface->selectedProgram = 'Coffee';
         $coffeMaker = IPS_CreateInstance('{F29DF312-A62E-9989-1F1A-0D1E1D171AD3}');
         $intf = IPS\InstanceManager::getInstanceInterface($coffeMaker);
-        $coffeMaker = IPS_CreateInstance('{F29DF312-A62E-9989-1F1A-0D1E1D171AD3}');
         IPS_SetProperty($coffeMaker, 'HaID', 'SIEMENS-TI9575X1DE-68A40E251CAD');
         IPS_SetProperty($coffeMaker, 'DeviceType', 'CoffeMaker');
         IPS_ApplyChanges($coffeMaker);
