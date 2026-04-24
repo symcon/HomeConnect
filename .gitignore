@@ -3,4 +3,3 @@
 .phpunit.*
 .php_cs.cache
 .php-cs-fixer.cache
-php-cs-fixer.phar
