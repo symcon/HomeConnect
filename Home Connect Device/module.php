@@ -510,11 +510,7 @@ class HomeConnectDevice extends IPSModule
      */
     private function updateOptionVariables($program)
     {
-        if (is_array($program)) {
-            $rawOptions = $program;
-        } else {
-            $rawOptions = $this->getProgram($program);
-        }
+        $rawOptions = $this->resolveProgramData($program);
 
         $this->SendDebug('RawOptions', json_encode($rawOptions), 0);
         if (!$rawOptions) {
@@ -652,6 +648,64 @@ class HomeConnectDevice extends IPSModule
             }
         }
         $this->WriteAttributeString('OptionKeys', json_encode($optionKeys));
+    }
+
+    /**
+     * Enrich selected program data with the available-program metadata so variable
+     * creation can rely on stable option types and constraints while keeping the
+     * current selected values.
+     *
+     * @param string|array $program
+     */
+    private function resolveProgramData($program)
+    {
+        if (!is_array($program)) {
+            return $this->getProgram($program);
+        }
+
+        if (!isset($program['key'])) {
+            return $program;
+        }
+
+        $resolvedProgram = $this->getProgram($program['key']);
+        if (!is_array($resolvedProgram)) {
+            return $program;
+        }
+
+        $selectedOptions = [];
+        $programOptions = isset($program['options']) && is_array($program['options']) ? $program['options'] : [];
+        foreach ($programOptions as $option) {
+            if (!isset($option['key'])) {
+                continue;
+            }
+            $selectedOptions[$option['key']] = $option;
+        }
+
+        if (!isset($resolvedProgram['options']) || !is_array($resolvedProgram['options'])) {
+            return $resolvedProgram;
+        }
+
+        foreach ($resolvedProgram['options'] as &$option) {
+            if (!isset($option['key']) || !isset($selectedOptions[$option['key']])) {
+                continue;
+            }
+
+            $selectedOption = $selectedOptions[$option['key']];
+            if (array_key_exists('value', $selectedOption)) {
+                $option['value'] = $selectedOption['value'];
+            }
+            if (isset($selectedOption['displayvalue'])) {
+                $option['displayvalue'] = $selectedOption['displayvalue'];
+            }
+            if (isset($selectedOption['name'])) {
+                $option['name'] = $selectedOption['name'];
+            }
+            if (isset($selectedOption['unit'])) {
+                $option['unit'] = $selectedOption['unit'];
+            }
+        }
+
+        return $resolvedProgram;
     }
 
     private function createStates($states = '')
