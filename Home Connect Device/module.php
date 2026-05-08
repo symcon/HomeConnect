@@ -372,7 +372,23 @@ class HomeConnectDevice extends IPSModule
             $data['Payload'] = $payload;
         }
         $response = $this->SendDataToParent(json_encode($data));
+        if (!is_string($response)) {
+            $this->SendDebug('ErrorResponseRaw', var_export($response, true), 0);
+            $response = $this->buildParentResponseError('Client.Error.ParentResponse', $this->Translate('No response from parent instance'));
+        }
+
+        if ($response === '') {
+            $this->SendDebug('responseData', $response, 0);
+            return $response;
+        }
+
         $errorDetector = json_decode($response, true);
+        if (!is_array($errorDetector)) {
+            $this->SendDebug('ErrorResponseRaw', $response, 0);
+            $response = $this->buildParentResponseError('Client.Error.ParentResponse', $this->Translate('Invalid JSON response from parent instance'));
+            $errorDetector = json_decode($response, true);
+        }
+
         if (isset($errorDetector['error'])) {
             // Log error responses so failures are visible in debug output.
             $this->SendDebug('ErrorResponse', $response, 0);
@@ -386,7 +402,9 @@ class HomeConnectDevice extends IPSModule
                 default:
                     $this->SendDebug('ErrorPayload', $payload, 0);
                     $this->SendDebug('ErrorEndpoint', $endpoint, 0);
-                    echo $errorDetector['error']['description']; //Not translated  due to the dynamic content
+                    if (isset($errorDetector['error']['description'])) {
+                        echo $errorDetector['error']['description']; //Not translated  due to the dynamic content
+                    }
                     break;
             }
         }
@@ -611,8 +629,8 @@ class HomeConnectDevice extends IPSModule
         if (in_array($key, self::EXCLUDE)) {
             return false;
         }
-        $data = json_decode($this->RequestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected/options/' . $key), true)['data'];
-        return $data;
+        $data = json_decode($this->RequestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/programs/selected/options/' . $key), true);
+        return isset($data['data']) ? $data['data'] : false;
     }
     /**
      * @param string|array $program Der Programmschlüssel oder das bereits abgerufene Programmdaten-Array.
@@ -829,6 +847,9 @@ class HomeConnectDevice extends IPSModule
                 }
                 $variableType = $this->getVariableType($value);
                 $settingDetails = json_decode($this->RequestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/settings/' . $setting['key']), true);
+                if (!isset($settingDetails['data'])) {
+                    continue;
+                }
                 $this->createVariableFromConstraints($profileName, $settingDetails['data'], 'Setting', $position);
                 $position++;
                 $this->SetValue($ident, $value);
@@ -1102,12 +1123,30 @@ class HomeConnectDevice extends IPSModule
 
     private function responseHasError($response)
     {
-        if (!is_string($response) || $response === '') {
+        if (!is_string($response)) {
+            return true;
+        }
+
+        if ($response === '') {
             return false;
         }
 
         $decodedResponse = json_decode($response, true);
+        if (!is_array($decodedResponse)) {
+            return true;
+        }
+
         return isset($decodedResponse['error']);
+    }
+
+    private function buildParentResponseError(string $key, string $description): string
+    {
+        return json_encode([
+            'error' => [
+                'key'         => $key,
+                'description' => $description
+            ]
+        ]);
     }
 
     private function sortAssociations($key, array $associations)
@@ -1140,6 +1179,7 @@ class HomeConnectDevice extends IPSModule
 
     private function getAvailableCommands()
     {
-        return json_decode($this->RequestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/commands'), true)['data']['commands'];
+        $commands = json_decode($this->RequestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/commands'), true);
+        return isset($commands['data']['commands']) ? $commands['data']['commands'] : [];
     }
 }
