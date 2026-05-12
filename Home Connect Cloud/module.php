@@ -35,7 +35,11 @@ class HomeConnectCloud extends WebOAuthModule
 
         $this->RequireParent('{2FADB4B7-FDAB-3C64-3E2C-068A4809849A}');
 
-        $this->RegisterMessage(IPS_GetInstance($this->InstanceID)['ConnectionID'], IM_CHANGESTATUS);
+        $parent = IPS_GetInstance($this->InstanceID)['ConnectionID'];
+        if (IPS_InstanceExists($parent)) {
+            $this->RegisterMessage($parent, IM_CHANGESTATUS);
+        }
+        $this->RegisterMessage($this->InstanceID, FM_CONNECT);
 
         $this->RegisterPropertyString('Language', 'de-DE');
 
@@ -109,6 +113,24 @@ class HomeConnectCloud extends WebOAuthModule
                     }
                     break;
             }
+        }
+        if ($SenderID == $this->InstanceID) {
+            switch ($MessageID) {
+                case FM_CONNECT:
+                    $this->RegisterMessage($Data[0], IM_CHANGESTATUS);
+                    $this->ForceRegisterServerEvents();
+                    break;
+            }
+        }
+    }
+
+    public function ForceRegisterServerEvents()
+    {
+        $parent = IPS_GetInstance($this->InstanceID)['ConnectionID'];
+        if (IPS_InstanceExists($parent)) {
+            IPS_SetProperty($parent, 'Active', true);
+            IPS_ApplyChanges($parent);
+            $this->RegisterServerEvents();
         }
     }
 
@@ -191,6 +213,9 @@ class HomeConnectCloud extends WebOAuthModule
 
             $this->WriteAttributeString('Token', $token);
             $this->UpdateFormField('Token', 'caption', 'Token: ' . substr($token, 0, 16) . '...');
+
+            $this->ForceRegisterServerEvents();
+
         } else {
 
             //Just print raw post data!
