@@ -207,6 +207,14 @@ class HomeConnectCloud extends WebOAuthModule
                 die('Authorization Code expected');
             }
 
+            // When the page gets reloaded we might use the code twice which results in our token being revoked by the server.
+            $lastCode = $this->GetBuffer('LastCode');
+            if ($lastCode == $_GET['code']) {
+                return;
+            } else {
+                $this->SetBuffer('LastCode', $_GET['code']);
+            }
+
             $token = $this->FetchRefreshToken($_GET['code']);
 
             $this->SendDebug('ProcessOAuthData', "OK! Let's save the Refresh Token permanently", 0);
