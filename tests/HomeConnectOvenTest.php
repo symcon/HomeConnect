@@ -81,6 +81,34 @@ class HomeConnectOvenTest extends TestCase
         $this->assertEquals(IS_ACTIVE, IPS_GetInstance($oven)['InstanceStatus']);
     }
 
+    public function testStringSettingWithoutAllowedValuesDoesNotCrash()
+    {
+        $oven = IPS_CreateInstance('{F29DF312-A62E-9989-1F1A-0D1E1D171AD3}');
+        $intf = IPS\InstanceManager::getInstanceInterface($oven);
+
+        $method = new ReflectionMethod($intf, 'createVariableFromConstraints');
+        $method->setAccessible(true);
+        $method->invoke(
+            $intf,
+            'HomeConnect.Test.StringSetting',
+            [
+                'key'         => 'Dishcare.Dishwasher.Setting.ProgramInfo',
+                'name'        => 'Program Info',
+                'type'        => 'String',
+                'constraints' => [
+                    'access' => 'readWrite'
+                ]
+            ],
+            'Setting',
+            1
+        );
+
+        $variableID = IPS_GetObjectIDByIdent('ProgramInfo', $oven);
+        $this->assertNotFalse($variableID);
+        $this->assertEquals(VARIABLETYPE_STRING, IPS_GetVariable($variableID)['VariableType']);
+        $this->assertCount(0, IPS_GetVariableProfile('HomeConnect.Test.StringSetting')['Associations']);
+    }
+
     private function generateTestData($tempValue)
     {
         $data = [

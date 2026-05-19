@@ -961,12 +961,12 @@ class HomeConnectDevice extends IPSModule
         switch ($variableType) {
             case VARIABLETYPE_INTEGER:
             case VARIABLETYPE_FLOAT:
-                $constraints = $data['constraints'];
+                $constraints = isset($data['constraints']) && is_array($data['constraints']) ? $data['constraints'] : [];
                 if (!IPS_VariableProfileExists($profileName)) {
                     //Create profile
                     IPS_CreateVariableProfile($profileName, $variableType);
                 }
-                IPS_SetVariableProfileText($profileName, '', ' ' . $data['unit']);
+                IPS_SetVariableProfileText($profileName, '', isset($data['unit']) ? ' ' . $data['unit'] : '');
                 $min = isset($constraints['min']) ? $constraints['min'] : 0;
                 $max = isset($constraints['max']) ? $constraints['max'] : 86340;
                 IPS_SetVariableProfileValues($profileName, $min, $max, isset($constraints['stepsize']) ? $constraints['stepsize'] : 1);
@@ -978,7 +978,7 @@ class HomeConnectDevice extends IPSModule
                 break;
 
             default:
-                $constraints = $data['constraints'];
+                $constraints = isset($data['constraints']) && is_array($data['constraints']) ? $data['constraints'] : [];
                 $variableType = VARIABLETYPE_STRING;
                 if (!IPS_VariableProfileExists($profileName)) {
                     //Create profile
@@ -986,9 +986,11 @@ class HomeConnectDevice extends IPSModule
                 }
                 //Add potential new options
                 $newAssociations = [];
-                for ($i = 0, $size = count($constraints['allowedvalues']); $i < $size; $i++) {
-                    $displayName = isset($constraints['displayvalues'][$i]) ? $constraints['displayvalues'][$i] : $this->getLastSnippet($constraints['allowedvalues'][$i]);
-                    $newAssociations[$constraints['allowedvalues'][$i]] = $displayName;
+                $allowedValues = isset($constraints['allowedvalues']) && is_array($constraints['allowedvalues']) ? $constraints['allowedvalues'] : [];
+                $displayValues = isset($constraints['displayvalues']) && is_array($constraints['displayvalues']) ? $constraints['displayvalues'] : [];
+                for ($i = 0, $size = count($allowedValues); $i < $size; $i++) {
+                    $displayName = isset($displayValues[$i]) ? $displayValues[$i] : $this->getLastSnippet($allowedValues[$i]);
+                    $newAssociations[$allowedValues[$i]] = $displayName;
                 }
                 $newAssociations = $this->sortAssociations($data['key'], $newAssociations);
 
