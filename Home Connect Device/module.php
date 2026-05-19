@@ -56,6 +56,13 @@ class HomeConnectDevice extends IPSModule
 
         $this->ConnectParent('{CE76810D-B685-9BE0-CC04-38B204DEAD5E}');
 
+        $parent = IPS_GetInstance($this->InstanceID)['ConnectionID'];
+        if (IPS_InstanceExists($parent)) {
+            $this->RegisterMessage($parent, IM_CHANGESTATUS);
+        }
+        $this->RegisterMessage($this->InstanceID, FM_CONNECT);
+        $this->RegisterMessage($this->InstanceID, FM_DISCONNECT);
+
         $this->RegisterPropertyString('HaID', '');
         $this->RegisterPropertyString('DeviceType', '');
 
@@ -122,16 +129,35 @@ class HomeConnectDevice extends IPSModule
         parent::ApplyChanges();
 
         if (IPS_GetKernelRunlevel() === KR_READY) {
-            if ($this->HasActiveParent() && $this->ReadPropertyString('HaID')) {
-                $this->SetSummary($this->ReadPropertyString('HaID'));
-                $this->InitializeDevice();
-                $this->SetStatus(IS_ACTIVE);
-            } else {
-                $this->SetStatus(IS_INACTIVE);
-            }
+            $this->refreshDeviceState(true);
         }
 
         $this->SetReceiveDataFilter('.*' . $this->ReadPropertyString('HaID') . '.*');
+    }
+
+    public function MessageSink($Timestamp, $SenderID, $MessageID, $Data)
+    {
+        //Never delete this line!
+        parent::MessageSink($Timestamp, $SenderID, $MessageID, $Data);
+
+        $parentID = IPS_GetInstance($this->InstanceID)['ConnectionID'];
+        if ($SenderID == $parentID && $MessageID == IM_CHANGESTATUS) {
+            $this->refreshDeviceState($Data[0] == IS_ACTIVE);
+            return;
+        }
+
+        if ($SenderID == $this->InstanceID) {
+            switch ($MessageID) {
+                case FM_CONNECT:
+                    $this->RegisterMessage($Data[0], IM_CHANGESTATUS);
+                    $this->refreshDeviceState(true);
+                    return;
+
+                case FM_DISCONNECT:
+                    $this->SetStatus(IS_INACTIVE);
+                    return;
+            }
+        }
     }
 
     public function ReceiveData($String)
@@ -410,6 +436,20 @@ class HomeConnectDevice extends IPSModule
         }
         $this->SendDebug('responseData', $response, 0);
         return $response;
+    }
+
+    private function refreshDeviceState(bool $initializeDevice): void
+    {
+        if ($this->HasActiveParent() && $this->ReadPropertyString('HaID')) {
+            $this->SetSummary($this->ReadPropertyString('HaID'));
+            if ($initializeDevice) {
+                $this->InitializeDevice();
+            }
+            $this->SetStatus(IS_ACTIVE);
+            return;
+        }
+
+        $this->SetStatus(IS_INACTIVE);
     }
 
     private function createPrograms()

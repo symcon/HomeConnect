@@ -41,22 +41,44 @@ class HomeConnectOvenTest extends TestCase
         IPS_SetProperty($oven, 'HaID', 'SIEMENS-HB676G5S6-68A40E2F702D');
         IPS_SetProperty($oven, 'DeviceType', 'Oven');
         IPS_ApplyChanges($oven);
+
+        $intf = IPS\InstanceManager::getInstanceInterface($oven);
+        $intf->ReceiveData($this->generateTestData(52));
         $initialVar = IPS_GetObjectIDByIdent('CurrentCavityTemperature', $oven);
         $this->assertEquals(VARIABLETYPE_INTEGER, $this->getValueType($oven));
 
-        $intf = IPS\InstanceManager::getInstanceInterface($oven);
         $intf->ReceiveData($this->generateTestData(50.99));
         $newFloat = IPS_GetObjectIDByIdent('CurrentCavityTemperature', $oven);
         $this->assertNotEquals($newFloat, $initialVar);
         $this->assertEquals(VARIABLETYPE_FLOAT, $this->getValueType($oven));
 
-        $intf->ReceiveData($this->generateTestData(52));
+        $intf->ReceiveData($this->generateTestData(54));
         $this->assertEquals($newFloat, IPS_GetObjectIDByIdent('CurrentCavityTemperature', $oven));
         $this->assertEquals(VARIABLETYPE_FLOAT, $this->getValueType($oven));
 
         $intf->ReceiveData($this->generateTestData(54.00000000000001));
         $this->assertEquals($newFloat, IPS_GetObjectIDByIdent('CurrentCavityTemperature', $oven));
         $this->assertEquals(VARIABLETYPE_FLOAT, $this->getValueType($oven));
+    }
+
+    public function testReactivatesAfterParentStatusChange()
+    {
+        $oven = IPS_CreateInstance('{F29DF312-A62E-9989-1F1A-0D1E1D171AD3}');
+        $parent = IPS_GetInstance($oven)['ConnectionID'];
+
+        IPS\InstanceManager::setStatus($parent, IS_INACTIVE);
+
+        IPS_SetProperty($oven, 'HaID', 'SIEMENS-HB676G5S6-68A40E2F702D');
+        IPS_SetProperty($oven, 'DeviceType', 'Oven');
+        IPS_ApplyChanges($oven);
+
+        $this->assertEquals(IS_INACTIVE, IPS_GetInstance($oven)['InstanceStatus']);
+
+        IPS\InstanceManager::setStatus($parent, IS_ACTIVE);
+        $intf = IPS\InstanceManager::getInstanceInterface($oven);
+        $intf->MessageSink(0, $parent, IM_CHANGESTATUS, [IS_ACTIVE]);
+
+        $this->assertEquals(IS_ACTIVE, IPS_GetInstance($oven)['InstanceStatus']);
     }
 
     private function generateTestData($tempValue)
