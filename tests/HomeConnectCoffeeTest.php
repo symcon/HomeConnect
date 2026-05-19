@@ -63,11 +63,11 @@ class HomeConnectCoffeeTest extends TestCase
 
     public function testBaseFunctionality()
     {
-        $cloudInterface = IPS\InstanceManager::getInstanceInterface(IPS_GetInstanceListByModuleID('{CE76810D-B685-9BE0-CC04-38B204DEAD5E}')[0]);
+        $cloudId = IPS_GetInstanceListByModuleID('{CE76810D-B685-9BE0-CC04-38B204DEAD5E}')[0];
+        $cloudInterface = IPS\InstanceManager::getInstanceInterface($cloudId);
         $cloudInterface->selectedProgram = 'Coffee';
         $coffeMaker = IPS_CreateInstance('{F29DF312-A62E-9989-1F1A-0D1E1D171AD3}');
         $intf = IPS\InstanceManager::getInstanceInterface($coffeMaker);
-        $coffeMaker = IPS_CreateInstance('{F29DF312-A62E-9989-1F1A-0D1E1D171AD3}');
         IPS_SetProperty($coffeMaker, 'HaID', 'SIEMENS-TI9575X1DE-68A40E251CAD');
         IPS_SetProperty($coffeMaker, 'DeviceType', 'CoffeMaker');
         IPS_ApplyChanges($coffeMaker);
@@ -112,9 +112,44 @@ class HomeConnectCoffeeTest extends TestCase
         $children = IPS_GetChildrenIDs($id);
         $result = [];
         foreach ($children as $child) {
-            $result[IPS_GetObject($child)['ObjectIdent']] = GetValueFormatted($child);
+            if (IPS_GetObject($child)['ObjectIsHidden']) {
+                continue;
+            }
+            $result[IPS_GetObject($child)['ObjectIdent']] = $this->formatValue($child);
         }
         return $result;
+    }
+
+    private function formatValue(int $variableID): string
+    {
+        $presentation = IPS_GetVariablePresentation($variableID);
+        if (!empty($presentation)) {
+            return GetValueFormatted($variableID);
+        }
+
+        $variable = IPS_GetVariable($variableID);
+        $profileName = $variable['VariableCustomProfile'] ?: $variable['VariableProfile'];
+        if ($profileName === '' || !IPS_VariableProfileExists($profileName)) {
+            return strval($variable['VariableValue']);
+        }
+
+        $profile = IPS_GetVariableProfile($profileName);
+        $value = $variable['VariableValue'];
+        if (count($profile['Associations']) > 0) {
+            switch ($profile['ProfileType']) {
+                case VARIABLETYPE_BOOLEAN:
+                    return $value ? $profile['Associations'][1]['Name'] : $profile['Associations'][0]['Name'];
+                case VARIABLETYPE_STRING:
+                    for ($i = count($profile['Associations']) - 1; $i >= 0; $i--) {
+                        if ($value == $profile['Associations'][$i]['Value']) {
+                            return $profile['Prefix'] . sprintf($profile['Associations'][$i]['Name'], $value) . $profile['Suffix'];
+                        }
+                    }
+                    return '-';
+            }
+        }
+
+        return strval($profile['Prefix'] . $value . $profile['Suffix']);
     }
 
     private function buildEvent($event)

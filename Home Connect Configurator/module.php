@@ -27,6 +27,11 @@ class HomeConnectConfigurator extends IPSModule
         parent::ApplyChanges();
     }
 
+    public function ForwardData($JSONString)
+    {
+        return $this->SendDataToParent($JSONString);
+    }
+
     public function GetConfigurationForm()
     {
         $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);

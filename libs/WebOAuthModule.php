@@ -61,6 +61,11 @@ class WebOAuthModule extends IPSModule
         $this->SendDebug('WebOAuth', 'Array POST: ' . print_r($_POST, true), 0);
     }
 
+    protected function getTime(): int
+    {
+        return time();
+    }
+
     private function RegisterOAuth($WebOAuth): void
     {
         $ids = IPS_GetInstanceListByModuleID('{F99BF07D-CECA-438B-A497-E4B55F139D37}');

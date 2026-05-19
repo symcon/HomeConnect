@@ -84,14 +84,22 @@ class HomeConnectOvenTest extends TestCase
 
     private function getValueType($id)
     {
-        return IPS_GetVariable(IPS_GetObjectIDByIdent('CurrentCavityTemperature', $id))['VariableType'];
+        $variableId = @IPS_GetObjectIDByIdent('CurrentCavityTemperature', $id);
+        if ($variableId === false) {
+            return -1;
+        }
+        return IPS_GetVariable($variableId)['VariableType'];
     }
 
     private function displayTemperature($id)
     {
-        $temperature = IPS_GetObjectIDByIdent('CurrentCavityTemperature', $id);
-        $type = IPS_GetVariable($temperature)['VariableType'];
-        echo PHP_EOL . $temperature . ' - ' . $type . PHP_EOL;
+        $variableId = @IPS_GetObjectIDByIdent('CurrentCavityTemperature', $id);
+        if ($variableId === false) {
+            echo PHP_EOL . 'CurrentCavityTemperature not found' . PHP_EOL;
+            return;
+        }
+        $type = IPS_GetVariable($variableId)['VariableType'];
+        echo PHP_EOL . $variableId . ' - ' . $type . PHP_EOL;
     }
 
     private function displayChildrenValues($id)
