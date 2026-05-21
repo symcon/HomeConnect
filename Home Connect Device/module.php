@@ -56,6 +56,13 @@ class HomeConnectDevice extends IPSModule
 
         $this->ConnectParent('{CE76810D-B685-9BE0-CC04-38B204DEAD5E}');
 
+        $parent = IPS_GetInstance($this->InstanceID)['ConnectionID'];
+        if (IPS_InstanceExists($parent)) {
+            $this->RegisterMessage($parent, IM_CHANGESTATUS);
+        }
+        $this->RegisterMessage($this->InstanceID, FM_CONNECT);
+        $this->RegisterMessage($this->InstanceID, FM_DISCONNECT);
+
         $this->RegisterPropertyString('HaID', '');
         $this->RegisterPropertyString('DeviceType', '');
 
@@ -122,16 +129,35 @@ class HomeConnectDevice extends IPSModule
         parent::ApplyChanges();
 
         if (IPS_GetKernelRunlevel() === KR_READY) {
-            if ($this->HasActiveParent() && $this->ReadPropertyString('HaID')) {
-                $this->SetSummary($this->ReadPropertyString('HaID'));
-                $this->InitializeDevice();
-                $this->SetStatus(IS_ACTIVE);
-            } else {
-                $this->SetStatus(IS_INACTIVE);
-            }
+            $this->refreshDeviceState(true);
         }
 
         $this->SetReceiveDataFilter('.*' . $this->ReadPropertyString('HaID') . '.*');
+    }
+
+    public function MessageSink($Timestamp, $SenderID, $MessageID, $Data)
+    {
+        //Never delete this line!
+        parent::MessageSink($Timestamp, $SenderID, $MessageID, $Data);
+
+        $parentID = IPS_GetInstance($this->InstanceID)['ConnectionID'];
+        if ($SenderID == $parentID && $MessageID == IM_CHANGESTATUS) {
+            $this->refreshDeviceState($Data[0] == IS_ACTIVE);
+            return;
+        }
+
+        if ($SenderID == $this->InstanceID) {
+            switch ($MessageID) {
+                case FM_CONNECT:
+                    $this->RegisterMessage($Data[0], IM_CHANGESTATUS);
+                    $this->refreshDeviceState(true);
+                    return;
+
+                case FM_DISCONNECT:
+                    $this->SetStatus(IS_INACTIVE);
+                    return;
+            }
+        }
     }
 
     public function ReceiveData($String)
@@ -410,6 +436,20 @@ class HomeConnectDevice extends IPSModule
         }
         $this->SendDebug('responseData', $response, 0);
         return $response;
+    }
+
+    private function refreshDeviceState(bool $initializeDevice): void
+    {
+        if ($this->HasActiveParent() && $this->ReadPropertyString('HaID')) {
+            $this->SetSummary($this->ReadPropertyString('HaID'));
+            if ($initializeDevice) {
+                $this->InitializeDevice();
+            }
+            $this->SetStatus(IS_ACTIVE);
+            return;
+        }
+
+        $this->SetStatus(IS_INACTIVE);
     }
 
     private function createPrograms()
@@ -921,12 +961,12 @@ class HomeConnectDevice extends IPSModule
         switch ($variableType) {
             case VARIABLETYPE_INTEGER:
             case VARIABLETYPE_FLOAT:
-                $constraints = $data['constraints'];
+                $constraints = isset($data['constraints']) && is_array($data['constraints']) ? $data['constraints'] : [];
                 if (!IPS_VariableProfileExists($profileName)) {
                     //Create profile
                     IPS_CreateVariableProfile($profileName, $variableType);
                 }
-                IPS_SetVariableProfileText($profileName, '', ' ' . $data['unit']);
+                IPS_SetVariableProfileText($profileName, '', isset($data['unit']) ? ' ' . $data['unit'] : '');
                 $min = isset($constraints['min']) ? $constraints['min'] : 0;
                 $max = isset($constraints['max']) ? $constraints['max'] : 86340;
                 IPS_SetVariableProfileValues($profileName, $min, $max, isset($constraints['stepsize']) ? $constraints['stepsize'] : 1);
@@ -938,7 +978,7 @@ class HomeConnectDevice extends IPSModule
                 break;
 
             default:
-                $constraints = $data['constraints'];
+                $constraints = isset($data['constraints']) && is_array($data['constraints']) ? $data['constraints'] : [];
                 $variableType = VARIABLETYPE_STRING;
                 if (!IPS_VariableProfileExists($profileName)) {
                     //Create profile
@@ -946,9 +986,11 @@ class HomeConnectDevice extends IPSModule
                 }
                 //Add potential new options
                 $newAssociations = [];
-                for ($i = 0, $size = count($constraints['allowedvalues']); $i < $size; $i++) {
-                    $displayName = isset($constraints['displayvalues'][$i]) ? $constraints['displayvalues'][$i] : $this->getLastSnippet($constraints['allowedvalues'][$i]);
-                    $newAssociations[$constraints['allowedvalues'][$i]] = $displayName;
+                $allowedValues = isset($constraints['allowedvalues']) && is_array($constraints['allowedvalues']) ? $constraints['allowedvalues'] : [];
+                $displayValues = isset($constraints['displayvalues']) && is_array($constraints['displayvalues']) ? $constraints['displayvalues'] : [];
+                for ($i = 0, $size = count($allowedValues); $i < $size; $i++) {
+                    $displayName = isset($displayValues[$i]) ? $displayValues[$i] : $this->getLastSnippet($allowedValues[$i]);
+                    $newAssociations[$allowedValues[$i]] = $displayName;
                 }
                 $newAssociations = $this->sortAssociations($data['key'], $newAssociations);
 
