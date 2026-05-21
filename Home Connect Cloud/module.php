@@ -71,6 +71,16 @@ class HomeConnectCloud extends WebOAuthModule
     {
         $data = json_decode($Data, true);
         $this->SendDebug('Forward', $Data, 0);
+        if ($this->isRateLimitActive()) {
+            $error = [
+                'error' => [
+                    'key'         => '429',
+                    'description' => $this->ReadAttributeString('RateError') ?: $this->Translate('Home Connect requests are currently rate limited.')
+                ]
+            ];
+            $this->SendDebug('ForwardRateLimit', json_encode($error), 0);
+            return json_encode($error);
+        }
         try {
             if (isset($data['Payload'])) {
                 $this->SendDebug('Payload', $data['Payload'], 0);
@@ -189,9 +199,8 @@ class HomeConnectCloud extends WebOAuthModule
 
     public function ResetRateLimit()
     {
-        if ($this->GetStatus() != IS_ACTIVE) {
-            $this->WriteAttributeString('RateError', '');
-        }
+        $this->WriteAttributeString('RateError', '');
+        $this->updateRateLimitNotice();
         $this->SetStatus(IS_ACTIVE);
         $this->SetTimerInterval('RateLimit', 0);
     }
@@ -199,11 +208,15 @@ class HomeConnectCloud extends WebOAuthModule
     public function GetConfigurationForm()
     {
         $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
-        $form['status'][] = [
-            'code'    => IS_EBASE,
-            'icon'    => 'error',
-            'caption' => $this->ReadAttributeString('RateError'),
-        ];
+        $rateError = $this->ReadAttributeString('RateError');
+        foreach ($form['elements'] as &$element) {
+            if (($element['name'] ?? '') !== 'RateLimitNotice') {
+                continue;
+            }
+            $element['caption'] = $rateError;
+            $element['visible'] = $rateError !== '';
+            break;
+        }
 
         return json_encode($form);
     }
@@ -482,7 +495,51 @@ class HomeConnectCloud extends WebOAuthModule
         return false;
     }
 
-    private function handleHttpErrors($code, $responseHeader)
+    private function isRateLimitActive(): bool
+    {
+        $timer = $this->getTimer('RateLimit');
+        return is_array($timer) && isset($timer['NextRun']) && $timer['NextRun'] > time();
+    }
+
+    private function updateRateLimitNotice(): void
+    {
+        $rateError = $this->ReadAttributeString('RateError');
+        $this->UpdateFormField('RateLimitNotice', 'caption', $rateError);
+        $this->UpdateFormField('RateLimitNotice', 'visible', $rateError !== '');
+    }
+
+    private function getRateLimitDelay(array $responseHeader, string $response): int
+    {
+        $head = [];
+        foreach ($responseHeader as $header) {
+            $values = explode(':', $header, 2);
+            if (isset($values[1])) {
+                $head[trim($values[0])] = trim($values[1]);
+            }
+        }
+
+        if (isset($head['Retry-After']) && is_numeric($head['Retry-After'])) {
+            return max(1, (int) $head['Retry-After']);
+        }
+
+        $payload = json_decode($response, true);
+        $description = '';
+        if (is_array($payload) && isset($payload['error']['description'])) {
+            $description = (string) $payload['error']['description'];
+        }
+
+        if ($description !== '' && preg_match('/remaining period of (\d+) seconds/i', $description, $matches)) {
+            return max(1, (int) $matches[1]);
+        }
+
+        if ($description !== '' && preg_match('/remaining period of (\d+) minutes?/i', $description, $matches)) {
+            return max(1, (int) $matches[1] * 60);
+        }
+
+        return 60;
+    }
+
+    private function handleHttpErrors($code, $responseHeader, string $response = '')
     {
         switch ($code) {
             //Too Many Requests
@@ -494,10 +551,11 @@ class HomeConnectCloud extends WebOAuthModule
                         $head[trim($values[0])] = trim($values[1]);
                     }
                 }
-                $this->SetTimerInterval('RateLimit', $head['Retry-After'] * 1000);
+                $retryAfter = $this->getRateLimitDelay($responseHeader, $response);
+                $this->SetTimerInterval('RateLimit', $retryAfter * 1000);
                 $timer = $this->getTimer('RateLimit');
                 //Fallback to current time
-                $nextRun = $timer === false ? time() : $timer['NextRun'];
+                $nextRun = $timer === false ? (time() + $retryAfter) : $timer['NextRun'];
 
                 $this->WriteAttributeString(
                     'RateError',
@@ -511,9 +569,9 @@ class HomeConnectCloud extends WebOAuthModule
                         date('d.m.Y H:i:s', $nextRun),
                     ) : sprintf($this->Translate('A rate limit was reached. Requests are blocked until %s.'), date('d.m.Y H:i:s', $nextRun))
                 );
-                if ($this->GetStatus() != IS_EBASE) {
-                    $this->SetStatus(IS_EBASE);
-                    IPS_ApplyChanges($this->InstanceID);
+                $this->updateRateLimitNotice();
+                if ($this->HasActiveParent() && $this->GetStatus() != IS_ACTIVE) {
+                    $this->SetStatus(IS_ACTIVE);
                 }
                 return;
 
@@ -541,7 +599,7 @@ class HomeConnectCloud extends WebOAuthModule
         if ($code == 200) {
             $this->ResetRateLimit();
         } else {
-            $this->handleHttpErrors($code, $http_response_header);
+            $this->handleHttpErrors($code, $http_response_header, is_string($result) ? $result : '');
         }
         return $result;
     }
@@ -571,7 +629,7 @@ class HomeConnectCloud extends WebOAuthModule
         if ($code == 204) {
             $this->ResetRateLimit();
         } else {
-            $this->handleHttpErrors($code, $http_response_header);
+            $this->handleHttpErrors($code, $http_response_header, is_string($result) ? $result : '');
         }
 
         if ((strpos($http_response_header[0], '201') === false)) {
@@ -604,7 +662,7 @@ class HomeConnectCloud extends WebOAuthModule
         if ($code == 204) {
             $this->ResetRateLimit();
         } else {
-            $this->handleHttpErrors($code, $http_response_header);
+            $this->handleHttpErrors($code, $http_response_header, is_string($result) ? $result : '');
         }
 
         return $result;

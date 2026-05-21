@@ -68,6 +68,7 @@ class HomeConnectDevice extends IPSModule
 
         $this->RegisterAttributeString('Settings', '[]');
         $this->RegisterAttributeString('OptionKeys', '[]');
+        $this->RegisterAttributeString('InitializationSignature', '');
 
         //Common States
         //States
@@ -129,7 +130,7 @@ class HomeConnectDevice extends IPSModule
         parent::ApplyChanges();
 
         if (IPS_GetKernelRunlevel() === KR_READY) {
-            $this->refreshDeviceState(true);
+            $this->refreshDeviceState($this->needsInitialization());
         }
 
         $this->SetReceiveDataFilter('.*' . $this->ReadPropertyString('HaID') . '.*');
@@ -142,7 +143,7 @@ class HomeConnectDevice extends IPSModule
 
         $parentID = IPS_GetInstance($this->InstanceID)['ConnectionID'];
         if ($SenderID == $parentID && $MessageID == IM_CHANGESTATUS) {
-            $this->refreshDeviceState($Data[0] == IS_ACTIVE);
+            $this->refreshDeviceState($Data[0] == IS_ACTIVE && $this->needsInitialization());
             return;
         }
 
@@ -150,7 +151,7 @@ class HomeConnectDevice extends IPSModule
             switch ($MessageID) {
                 case FM_CONNECT:
                     $this->RegisterMessage($Data[0], IM_CHANGESTATUS);
-                    $this->refreshDeviceState(true);
+                    $this->refreshDeviceState($this->needsInitialization());
                     return;
 
                 case FM_DISCONNECT:
@@ -384,6 +385,7 @@ class HomeConnectDevice extends IPSModule
             $this->createEventProfile();
             $this->MaintainVariable('Event', $this->Translate('Event'), VARIABLETYPE_STRING, 'HomeConnect.Event.' . $this->ReadPropertyString('DeviceType'), 0, true);
             $this->MaintainVariable('EventDescription', $this->Translate('Event Description'), VARIABLETYPE_STRING, '', 0, true);
+            $this->WriteAttributeString('InitializationSignature', $this->getInitializationSignature());
         }
     }
 
@@ -450,6 +452,27 @@ class HomeConnectDevice extends IPSModule
         }
 
         $this->SetStatus(IS_INACTIVE);
+    }
+
+    private function needsInitialization(): bool
+    {
+        if ($this->ReadPropertyString('HaID') == '') {
+            return false;
+        }
+
+        if (!@IPS_GetObjectIDByIdent('OperationState', $this->InstanceID)) {
+            return true;
+        }
+
+        return $this->ReadAttributeString('InitializationSignature') !== $this->getInitializationSignature();
+    }
+
+    private function getInitializationSignature(): string
+    {
+        return json_encode([
+            'HaID'       => $this->ReadPropertyString('HaID'),
+            'DeviceType' => $this->ReadPropertyString('DeviceType')
+        ]);
     }
 
     private function createPrograms()
