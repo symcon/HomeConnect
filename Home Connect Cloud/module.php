@@ -32,6 +32,7 @@ class HomeConnectCloud extends WebOAuthModule
         $this->RegisterAttributeString('Token', '');
 
         $this->RegisterAttributeString('RateError', '');
+        $this->RegisterAttributeInteger('RateLimitUntil', 0);
 
         $this->RequireParent('{2FADB4B7-FDAB-3C64-3E2C-068A4809849A}');
 
@@ -200,6 +201,7 @@ class HomeConnectCloud extends WebOAuthModule
     public function ResetRateLimit()
     {
         $this->WriteAttributeString('RateError', '');
+        $this->WriteAttributeInteger('RateLimitUntil', 0);
         $this->updateRateLimitNotice();
         $this->SetStatus(IS_ACTIVE);
         $this->SetTimerInterval('RateLimit', 0);
@@ -483,22 +485,9 @@ class HomeConnectCloud extends WebOAuthModule
         return $result;
     }
 
-    private function getTimer($name)
-    {
-        foreach (IPS_GetTimerList() as $timerID) {
-            $timer = IPS_GetTimer($timerID);
-            if (($timer['InstanceID'] == $this->InstanceID) && ($timer['Name'] == $name)) {
-                return $timer;
-                break;
-            }
-        }
-        return false;
-    }
-
     private function isRateLimitActive(): bool
     {
-        $timer = $this->getTimer('RateLimit');
-        return is_array($timer) && isset($timer['NextRun']) && $timer['NextRun'] > time();
+        return $this->ReadAttributeInteger('RateLimitUntil') > time();
     }
 
     private function updateRateLimitNotice(): void
@@ -552,10 +541,9 @@ class HomeConnectCloud extends WebOAuthModule
                     }
                 }
                 $retryAfter = $this->getRateLimitDelay($responseHeader, $response);
+                $nextRun = time() + $retryAfter;
+                $this->WriteAttributeInteger('RateLimitUntil', $nextRun);
                 $this->SetTimerInterval('RateLimit', $retryAfter * 1000);
-                $timer = $this->getTimer('RateLimit');
-                //Fallback to current time
-                $nextRun = $timer === false ? (time() + $retryAfter) : $timer['NextRun'];
 
                 $this->WriteAttributeString(
                     'RateError',
