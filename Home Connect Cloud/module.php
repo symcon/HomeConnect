@@ -497,62 +497,49 @@ class HomeConnectCloud extends WebOAuthModule
         $this->UpdateFormField('RateLimitNotice', 'visible', $rateError !== '');
     }
 
-    private function getRateLimitDelay(array $responseHeader, string $response): int
+    private function parseResponseHeaders(array $responseHeader): array
     {
         $head = [];
         foreach ($responseHeader as $header) {
             $values = explode(':', $header, 2);
             if (isset($values[1])) {
-                $head[trim($values[0])] = trim($values[1]);
+                $head[strtolower(trim($values[0]))] = trim($values[1]);
             }
         }
 
-        if (isset($head['Retry-After']) && is_numeric($head['Retry-After'])) {
-            return max(1, (int) $head['Retry-After']);
-        }
+        return $head;
+    }
 
-        $payload = json_decode($response, true);
-        $description = '';
-        if (is_array($payload) && isset($payload['error']['description'])) {
-            $description = (string) $payload['error']['description'];
-        }
+    private function getRateLimitDelay(array $responseHeader): int
+    {
+        $head = $this->parseResponseHeaders($responseHeader);
 
-        if ($description !== '' && preg_match('/remaining period of (\d+) seconds/i', $description, $matches)) {
-            return max(1, (int) $matches[1]);
-        }
-
-        if ($description !== '' && preg_match('/remaining period of (\d+) minutes?/i', $description, $matches)) {
-            return max(1, (int) $matches[1] * 60);
+        if (isset($head['retry-after']) && is_numeric($head['retry-after'])) {
+            return max(1, (int) $head['retry-after']);
         }
 
         return 60;
     }
 
-    private function handleHttpErrors($code, $responseHeader, string $response = '')
+    private function handleHttpErrors($code, $responseHeader)
     {
         switch ($code) {
             //Too Many Requests
             case 429:
-                $head = [];
-                foreach ($responseHeader as $header) {
-                    $values = explode(':', $header, 2);
-                    if (isset($values[1])) {
-                        $head[trim($values[0])] = trim($values[1]);
-                    }
-                }
-                $retryAfter = $this->getRateLimitDelay($responseHeader, $response);
+                $head = $this->parseResponseHeaders($responseHeader);
+                $retryAfter = $this->getRateLimitDelay($responseHeader);
                 $nextRun = time() + $retryAfter;
                 $this->WriteAttributeInteger('RateLimitUntil', $nextRun);
                 $this->SetTimerInterval('RateLimit', $retryAfter * 1000);
 
                 $this->WriteAttributeString(
                     'RateError',
-                    isset($head['Rate-Limit-Type']) ?
+                    isset($head['rate-limit-type']) ?
                     sprintf(
                         $this->Translate(
                             'The rate limit of %s was reached. Requests are blocked until %s.'
                         ),
-                        $head['Rate-Limit-Type'] == 'day' ?
+                        $head['rate-limit-type'] == 'day' ?
                         $this->Translate('1000 calls in 1 day') : $this->Translate('50 calls in 1 minute'),
                         date('d.m.Y H:i:s', $nextRun),
                     ) : sprintf($this->Translate('A rate limit was reached. Requests are blocked until %s.'), date('d.m.Y H:i:s', $nextRun))
@@ -587,7 +574,7 @@ class HomeConnectCloud extends WebOAuthModule
         if ($code == 200) {
             $this->ResetRateLimit();
         } else {
-            $this->handleHttpErrors($code, $http_response_header, is_string($result) ? $result : '');
+            $this->handleHttpErrors($code, $http_response_header);
         }
         return $result;
     }
@@ -617,7 +604,7 @@ class HomeConnectCloud extends WebOAuthModule
         if ($code == 204) {
             $this->ResetRateLimit();
         } else {
-            $this->handleHttpErrors($code, $http_response_header, is_string($result) ? $result : '');
+            $this->handleHttpErrors($code, $http_response_header);
         }
 
         if ((strpos($http_response_header[0], '201') === false)) {
@@ -650,7 +637,7 @@ class HomeConnectCloud extends WebOAuthModule
         if ($code == 204) {
             $this->ResetRateLimit();
         } else {
-            $this->handleHttpErrors($code, $http_response_header, is_string($result) ? $result : '');
+            $this->handleHttpErrors($code, $http_response_header);
         }
 
         return $result;
