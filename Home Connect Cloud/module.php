@@ -32,6 +32,7 @@ class HomeConnectCloud extends WebOAuthModule
         $this->RegisterAttributeString('Token', '');
 
         $this->RegisterAttributeString('RateError', '');
+        $this->RegisterAttributeInteger('RateLimitUntil', 0);
 
         $this->RequireParent('{2FADB4B7-FDAB-3C64-3E2C-068A4809849A}');
 
@@ -71,6 +72,16 @@ class HomeConnectCloud extends WebOAuthModule
     {
         $data = json_decode($Data, true);
         $this->SendDebug('Forward', $Data, 0);
+        if ($this->isRateLimitActive()) {
+            $error = [
+                'error' => [
+                    'key'         => '429',
+                    'description' => $this->ReadAttributeString('RateError') ?: $this->Translate('Home Connect requests are currently rate limited.')
+                ]
+            ];
+            $this->SendDebug('ForwardRateLimit', json_encode($error), 0);
+            return json_encode($error);
+        }
         try {
             if (isset($data['Payload'])) {
                 $this->SendDebug('Payload', $data['Payload'], 0);
@@ -189,9 +200,9 @@ class HomeConnectCloud extends WebOAuthModule
 
     public function ResetRateLimit()
     {
-        if ($this->GetStatus() != IS_ACTIVE) {
-            $this->WriteAttributeString('RateError', '');
-        }
+        $this->WriteAttributeString('RateError', '');
+        $this->WriteAttributeInteger('RateLimitUntil', 0);
+        $this->updateRateLimitNotice();
         $this->SetStatus(IS_ACTIVE);
         $this->SetTimerInterval('RateLimit', 0);
     }
@@ -199,11 +210,15 @@ class HomeConnectCloud extends WebOAuthModule
     public function GetConfigurationForm()
     {
         $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
-        $form['status'][] = [
-            'code'    => IS_EBASE,
-            'icon'    => 'error',
-            'caption' => $this->ReadAttributeString('RateError'),
-        ];
+        $rateError = $this->ReadAttributeString('RateError');
+        foreach ($form['elements'] as &$element) {
+            if (($element['name'] ?? '') !== 'RateLimitNotice') {
+                continue;
+            }
+            $element['caption'] = $rateError;
+            $element['visible'] = $rateError !== '';
+            break;
+        }
 
         return json_encode($form);
     }
@@ -470,16 +485,40 @@ class HomeConnectCloud extends WebOAuthModule
         return $result;
     }
 
-    private function getTimer($name)
+    private function isRateLimitActive(): bool
     {
-        foreach (IPS_GetTimerList() as $timerID) {
-            $timer = IPS_GetTimer($timerID);
-            if (($timer['InstanceID'] == $this->InstanceID) && ($timer['Name'] == $name)) {
-                return $timer;
-                break;
+        return $this->ReadAttributeInteger('RateLimitUntil') > time();
+    }
+
+    private function updateRateLimitNotice(): void
+    {
+        $rateError = $this->ReadAttributeString('RateError');
+        $this->UpdateFormField('RateLimitNotice', 'caption', $rateError);
+        $this->UpdateFormField('RateLimitNotice', 'visible', $rateError !== '');
+    }
+
+    private function parseResponseHeaders(array $responseHeader): array
+    {
+        $head = [];
+        foreach ($responseHeader as $header) {
+            $values = explode(':', $header, 2);
+            if (isset($values[1])) {
+                $head[strtolower(trim($values[0]))] = trim($values[1]);
             }
         }
-        return false;
+
+        return $head;
+    }
+
+    private function getRateLimitDelay(array $responseHeader): int
+    {
+        $head = $this->parseResponseHeaders($responseHeader);
+
+        if (isset($head['retry-after']) && is_numeric($head['retry-after'])) {
+            return max(1, (int) $head['retry-after']);
+        }
+
+        return 60;
     }
 
     private function handleHttpErrors($code, $responseHeader)
@@ -487,33 +526,27 @@ class HomeConnectCloud extends WebOAuthModule
         switch ($code) {
             //Too Many Requests
             case 429:
-                $head = [];
-                foreach ($responseHeader as $header) {
-                    $values = explode(':', $header, 2);
-                    if (isset($values[1])) {
-                        $head[trim($values[0])] = trim($values[1]);
-                    }
-                }
-                $this->SetTimerInterval('RateLimit', $head['Retry-After'] * 1000);
-                $timer = $this->getTimer('RateLimit');
-                //Fallback to current time
-                $nextRun = $timer === false ? time() : $timer['NextRun'];
+                $head = $this->parseResponseHeaders($responseHeader);
+                $retryAfter = $this->getRateLimitDelay($responseHeader);
+                $nextRun = time() + $retryAfter;
+                $this->WriteAttributeInteger('RateLimitUntil', $nextRun);
+                $this->SetTimerInterval('RateLimit', $retryAfter * 1000);
 
                 $this->WriteAttributeString(
                     'RateError',
-                    isset($head['Rate-Limit-Type']) ?
+                    isset($head['rate-limit-type']) ?
                     sprintf(
                         $this->Translate(
                             'The rate limit of %s was reached. Requests are blocked until %s.'
                         ),
-                        $head['Rate-Limit-Type'] == 'day' ?
+                        $head['rate-limit-type'] == 'day' ?
                         $this->Translate('1000 calls in 1 day') : $this->Translate('50 calls in 1 minute'),
                         date('d.m.Y H:i:s', $nextRun),
                     ) : sprintf($this->Translate('A rate limit was reached. Requests are blocked until %s.'), date('d.m.Y H:i:s', $nextRun))
                 );
-                if ($this->GetStatus() != IS_EBASE) {
-                    $this->SetStatus(IS_EBASE);
-                    IPS_ApplyChanges($this->InstanceID);
+                $this->updateRateLimitNotice();
+                if ($this->HasActiveParent() && $this->GetStatus() != IS_ACTIVE) {
+                    $this->SetStatus(IS_ACTIVE);
                 }
                 return;
 
