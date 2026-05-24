@@ -964,22 +964,11 @@ class HomeConnectDevice extends IPSModule
             $ident = $attribute . $ident;
         }
 
-        switch ($data['type']) {
-            case 'Int':
-                $variableType = VARIABLETYPE_INTEGER;
-                break;
-
-            case 'Double':
-                $variableType = VARIABLETYPE_FLOAT;
-                break;
-
-            case 'Boolean':
-                $variableType = VARIABLETYPE_BOOLEAN;
-                break;
-
-            default:
-                $variableType = VARIABLETYPE_STRING;
-                break;
+        if (isset($data['type'])) {
+            $variableType = $this->mapConstraintTypeToVariableType($data['type']);
+        } else {
+            $variableType = $this->inferConstraintVariableType($data);
+            $this->SendDebug(__FUNCTION__, sprintf('Missing type for %s, inferred variable type: %d', $data['key'], $variableType), 0);
         }
         switch ($variableType) {
             case VARIABLETYPE_INTEGER:
@@ -1050,6 +1039,54 @@ class HomeConnectDevice extends IPSModule
                 $this->EnableAction($ident);
             }
         }
+    }
+
+    private function mapConstraintTypeToVariableType($type)
+    {
+        switch ($type) {
+            case 'Int':
+                return VARIABLETYPE_INTEGER;
+
+            case 'Double':
+                return VARIABLETYPE_FLOAT;
+
+            case 'Boolean':
+                return VARIABLETYPE_BOOLEAN;
+
+            default:
+                return VARIABLETYPE_STRING;
+        }
+    }
+
+    private function inferConstraintVariableType($data)
+    {
+        if (array_key_exists('value', $data)) {
+            return $this->getVariableType($data['value']);
+        }
+
+        $constraints = isset($data['constraints']) && is_array($data['constraints']) ? $data['constraints'] : [];
+
+        if (array_key_exists('default', $constraints)) {
+            return $this->getVariableType($constraints['default']);
+        }
+
+        if (isset($constraints['allowedvalues']) && is_array($constraints['allowedvalues']) && count($constraints['allowedvalues']) > 0) {
+            return $this->getVariableType($constraints['allowedvalues'][0]);
+        }
+
+        foreach (['min', 'max', 'stepsize'] as $numericConstraint) {
+            if (!isset($constraints[$numericConstraint]) || !is_numeric($constraints[$numericConstraint])) {
+                continue;
+            }
+
+            if ((float) $constraints[$numericConstraint] != (int) $constraints[$numericConstraint]) {
+                return VARIABLETYPE_FLOAT;
+            }
+
+            return VARIABLETYPE_INTEGER;
+        }
+
+        return VARIABLETYPE_STRING;
     }
 
     private function switchable()

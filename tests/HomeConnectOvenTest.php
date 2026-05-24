@@ -109,6 +109,34 @@ class HomeConnectOvenTest extends TestCase
         $this->assertCount(0, IPS_GetVariableProfile('HomeConnect.Test.StringSetting')['Associations']);
     }
 
+    public function testSettingWithoutTypeFallsBackToValueType()
+    {
+        $oven = IPS_CreateInstance('{F29DF312-A62E-9989-1F1A-0D1E1D171AD3}');
+        $intf = IPS\InstanceManager::getInstanceInterface($oven);
+
+        $method = new ReflectionMethod($intf, 'createVariableFromConstraints');
+        $method->setAccessible(true);
+        $method->invoke(
+            $intf,
+            'HomeConnect.Test.BooleanSetting',
+            [
+                'key'         => 'BSH.Common.Setting.ChildLock',
+                'name'        => 'Child Lock',
+                'value'       => false,
+                'constraints' => [
+                    'access' => 'readWrite'
+                ]
+            ],
+            'Setting',
+            1
+        );
+
+        $variableID = IPS_GetObjectIDByIdent('ChildLock', $oven);
+        $this->assertNotFalse($variableID);
+        $this->assertEquals(VARIABLETYPE_BOOLEAN, IPS_GetVariable($variableID)['VariableType']);
+        $this->assertEquals('HomeConnect.YesNo', IPS_GetVariable($variableID)['VariableProfile']);
+    }
+
     private function generateTestData($tempValue)
     {
         $data = [
