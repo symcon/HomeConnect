@@ -81,6 +81,26 @@ class HomeConnectOvenTest extends TestCase
         $this->assertEquals(IS_ACTIVE, IPS_GetInstance($oven)['InstanceStatus']);
     }
 
+    public function testBackfillsInitializationSignatureForExistingDeviceState()
+    {
+        $oven = IPS_CreateInstance('{F29DF312-A62E-9989-1F1A-0D1E1D171AD3}');
+        $operationState = IPS_CreateVariable(VARIABLETYPE_STRING);
+        IPS_SetParent($operationState, $oven);
+        IPS_SetIdent($operationState, 'OperationState');
+        IPS_SetName($operationState, 'Operation State');
+
+        IPS_SetProperty($oven, 'HaID', 'SIEMENS-HB676G5S6-68A40E2F702D');
+        IPS_SetProperty($oven, 'DeviceType', 'Oven');
+        IPS_ApplyChanges($oven);
+
+        $intf = IPS\InstanceManager::getInstanceInterface($oven);
+        $this->assertCount(1, IPS_GetChildrenIDs($oven));
+        $this->assertSame(
+            $this->invokeInstanceMethod($intf, 'getInitializationSignature'),
+            $this->invokeInstanceMethod($intf, 'ReadAttributeString', 'InitializationSignature')
+        );
+    }
+
     public function testStringSettingWithoutAllowedValuesDoesNotCrash()
     {
         $oven = IPS_CreateInstance('{F29DF312-A62E-9989-1F1A-0D1E1D171AD3}');
@@ -107,6 +127,34 @@ class HomeConnectOvenTest extends TestCase
         $this->assertNotFalse($variableID);
         $this->assertEquals(VARIABLETYPE_STRING, IPS_GetVariable($variableID)['VariableType']);
         $this->assertCount(0, IPS_GetVariableProfile('HomeConnect.Test.StringSetting')['Associations']);
+    }
+
+    public function testSettingWithoutTypeFallsBackToValueType()
+    {
+        $oven = IPS_CreateInstance('{F29DF312-A62E-9989-1F1A-0D1E1D171AD3}');
+        $intf = IPS\InstanceManager::getInstanceInterface($oven);
+
+        $method = new ReflectionMethod($intf, 'createVariableFromConstraints');
+        $method->setAccessible(true);
+        $method->invoke(
+            $intf,
+            'HomeConnect.Test.BooleanSetting',
+            [
+                'key'         => 'BSH.Common.Setting.ChildLock',
+                'name'        => 'Child Lock',
+                'value'       => false,
+                'constraints' => [
+                    'access' => 'readWrite'
+                ]
+            ],
+            'Setting',
+            1
+        );
+
+        $variableID = IPS_GetObjectIDByIdent('ChildLock', $oven);
+        $this->assertNotFalse($variableID);
+        $this->assertEquals(VARIABLETYPE_BOOLEAN, IPS_GetVariable($variableID)['VariableType']);
+        $this->assertEquals('HomeConnect.YesNo', IPS_GetVariable($variableID)['VariableProfile']);
     }
 
     private function generateTestData($tempValue)
@@ -173,5 +221,12 @@ class HomeConnectOvenTest extends TestCase
             }
         }
         return $result;
+    }
+
+    private function invokeInstanceMethod(object $instance, string $methodName, ...$arguments)
+    {
+        $method = new ReflectionMethod($instance, $methodName);
+        $method->setAccessible(true);
+        return $method->invoke($instance, ...$arguments);
     }
 }

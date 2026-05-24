@@ -203,7 +203,9 @@ class HomeConnectCloud extends WebOAuthModule
         $this->WriteAttributeString('RateError', '');
         $this->WriteAttributeInteger('RateLimitUntil', 0);
         $this->updateRateLimitNotice();
-        $this->SetStatus(IS_ACTIVE);
+        if ($this->GetStatus() != IS_ACTIVE) {
+            $this->SetStatus(IS_ACTIVE);
+        }
         $this->SetTimerInterval('RateLimit', 0);
     }
 
