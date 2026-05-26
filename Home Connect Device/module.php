@@ -424,7 +424,7 @@ class HomeConnectDevice extends IPSModule
                 case 'SDK.Error.UnsupportedProgram':
                 case 'SDK.Error.UnsupportedOperation':
                 case 'SDK.Error.NoProgramSelected':
-                    // case 'SDK.Error.HomeAppliance.Connection.Initialization.Failed':
+                case 'SDK.Error.HomeAppliance.Connection.Initialization.Failed':
                     return $response;
 
                 default:
