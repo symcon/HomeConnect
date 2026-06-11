@@ -25,6 +25,7 @@ class HomeConnectDevice extends IPSModule
         'BSH.Common.Event.ProgramFinished'                                => 'The program is finished',
         'BSH.Common.Event.AlarmClockElapsed'                              => 'The alarm clock has elapsed',
         'Cooking.Oven.Event.PreheatFinished'                              => 'The preheating phase is finished',
+        'Cooking.Oven.Event.RegularPreheatFinished'                       => 'The preheating phase is finished',
         'ConsumerProducts.CoffeeMaker.Event.BeanContainerEmpty'           => 'Please fill bean container',
         'ConsumerProducts.CoffeeMaker.Event.WaterTankEmpty'               => 'Please fill water tank',
         'ConsumerProducts.CoffeeMaker.Event.DripTrayFull'                 => 'Please empty drip tray',
