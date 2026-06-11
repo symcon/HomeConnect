@@ -42,6 +42,7 @@
             "hint": "Hinweis",
             "warning": "Warnung",
             "alert": "Alarm",
+            "info": "Information",
             "The program was aborted": "Das Programm wurde abgebrochen",
             "The program is finished": "Das Programm ist fertig",
             "The alarm clock has elapsed": "Der Alarm ist abgelaufen",
