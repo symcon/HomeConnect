@@ -38,6 +38,7 @@ class HomeConnectDevice extends IPSModule
         'ConsumerProducts.CoffeeMaker.Event.DeviceCalcNCleanOverdue'      => 'Device calc n clean overdue',
         'ConsumerProducts.CoffeeMaker.Event.DeviceCalcNCleanBlockage'     => 'Device blocked because of calc n clean overdue',
         'Dishcare.Dishwasher.Event.RinseAidNearlyEmpty'                   => 'Please fill RinseAid tank',
+        'LaundryCare.Dryer.Event.DryingProcessFinished'                   => 'Drying Process Finished',
         'Refrigeration.FridgeFreezer.Event.DoorAlarmFreezer'              => 'Please close door',
         'Refrigeration.FridgeFreezer.Event.DoorAlarmRefrigerator'         => 'Please close door',
         'Refrigeration.FridgeFreezer.Event.TemperatureAlarmFreezer'       => 'The freezer temperature is too high',
