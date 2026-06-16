@@ -176,7 +176,7 @@ class HomeConnectDevice extends IPSModule
                 break;
             case 'CONNECTED':
                 // Device comes online, request states
-                $this->createStates();
+                $this->refreshDeviceState($this->needsInitialization());
                 break;
             case 'STATUS':
             case 'NOTIFY':
