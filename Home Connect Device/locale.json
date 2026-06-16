@@ -42,14 +42,25 @@
             "hint": "Hinweis",
             "warning": "Warnung",
             "alert": "Alarm",
+            "info": "Information",
             "The program was aborted": "Das Programm wurde abgebrochen",
             "The program is finished": "Das Programm ist fertig",
             "The alarm clock has elapsed": "Der Alarm ist abgelaufen",
             "The preheating phase is finished": "Die Vorwärmphase ist beendet",
             "Please fill bean container": "Bitte Bohnenbehälter füllen",
             "Please fill water tank": "Bitte Wassertank füllen",
+            "Please fill RinseAid tank": "Bitte Klarspüler nachfüllen",
             "Please empty drip tray": "Bitte Tropfschalen leeren",
+            "Please descale device": "Bitte Gerät entkalken",
+            "Descaling overdue": "Entkalkung überfällig",
+            "Device blocked because of descaling overdue": "Entkalkung überfällig, Gerät wird automatisch gesperrt",
+            "Please clean device": "Reinigung notwendig",
+            "Cleaning overdue": "Reinigung überfällig",
+            "Please calc n clean device": "Bitte calc'n clean durchführen",
+            "Device calc n clean overdue": "calc'n clean überfällig",
+            "Device blocked because of calc n clean overdue": "calc'n clean überfällig, Gerät wird automatisch gesperrt",
             "Please close door": "Bitte Tür schließen",
+            "Drying Process Finished": "Der Trockner ist fertig",
             "The freezer temperature is too high": "Die Temperatur des Gefrierschranks ist zu hoch",
             "Please empty the dust box and clean the filter": "Bitte entleeren Sie die Staubbox und reinigen Sie den Filter",
             "The robot cannot continue  it's run": "Der Roboter kann seine Strecke nicht fortsetzen",
@@ -61,7 +72,10 @@
             "Action can currently not be performed": "Aktion kann zur Zeit nicht ausgeführt werden",
             "Initialize Device": "Gerät Initialisieren",
             "https://www.symcon.de/en/service/documentation/module-reference/home-connect/home-connect-device/": "https://www.symcon.de/de/service/dokumentation/modulreferenz/home-connect/home-connect-device/",
-            "Home Connect Device": "Home Connect Gerät"
+            "Home Connect Device": "Home Connect Gerät",
+            "Use duration option": "Option Dauer verwenden",
+            "No response from parent instance": "Keine Antwort von der Parent-Instanz",
+            "Invalid JSON response from parent instance": "Ungültige JSON-Antwort von der Parent-Instanz"
         }
     }
 }

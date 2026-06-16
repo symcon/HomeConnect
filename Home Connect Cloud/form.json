@@ -1,6 +1,12 @@
 {
     "elements": [
         {
+            "type": "Label",
+            "name": "RateLimitNotice",
+            "caption": "",
+            "visible": false
+        },
+        {
             "type": "Button",
             "caption": "Register",
             "onClick": "echo HC_Register($id);"

@@ -32,10 +32,15 @@ class HomeConnectCloud extends WebOAuthModule
         $this->RegisterAttributeString('Token', '');
 
         $this->RegisterAttributeString('RateError', '');
+        $this->RegisterAttributeInteger('RateLimitUntil', 0);
 
         $this->RequireParent('{2FADB4B7-FDAB-3C64-3E2C-068A4809849A}');
 
-        $this->RegisterMessage(IPS_GetInstance($this->InstanceID)['ConnectionID'], IM_CHANGESTATUS);
+        $parent = IPS_GetInstance($this->InstanceID)['ConnectionID'];
+        if (IPS_InstanceExists($parent)) {
+            $this->RegisterMessage($parent, IM_CHANGESTATUS);
+        }
+        $this->RegisterMessage($this->InstanceID, FM_CONNECT);
 
         $this->RegisterPropertyString('Language', 'de-DE');
 
@@ -67,14 +72,31 @@ class HomeConnectCloud extends WebOAuthModule
     {
         $data = json_decode($Data, true);
         $this->SendDebug('Forward', $Data, 0);
-        if (isset($data['Payload'])) {
-            $this->SendDebug('Payload', $data['Payload'], 0);
-            if ($data['Payload'] == 'DELETE') {
-                return $this->deleteRequest($data['Endpoint']);
-            }
-            return $this->putRequest($data['Endpoint'], $data['Payload']);
+        if ($this->isRateLimitActive()) {
+            $error = [
+                'error' => [
+                    'key'         => '429',
+                    'description' => $this->ReadAttributeString('RateError') ?: $this->Translate('Home Connect requests are currently rate limited.')
+                ]
+            ];
+            $this->SendDebug('ForwardRateLimit', json_encode($error), 0);
+            return json_encode($error);
         }
-        return $this->getRequest($data['Endpoint']);
+        try {
+            if (isset($data['Payload'])) {
+                $this->SendDebug('Payload', $data['Payload'], 0);
+                if ($data['Payload'] == 'DELETE') {
+                    return $this->deleteRequest($data['Endpoint']);
+                }
+                return $this->putRequest($data['Endpoint'], $data['Payload']);
+            }
+
+            return $this->getRequest($data['Endpoint']);
+        } catch (RuntimeException $e) {
+            $error = $this->DecodeModuleError($e);
+            $this->SendDebug('ForwardError', json_encode($error), 0);
+            return json_encode(['error' => $error['error']]);
+        }
     }
 
     public function ReceiveData($JSONString)
@@ -110,25 +132,49 @@ class HomeConnectCloud extends WebOAuthModule
                     break;
             }
         }
+        if ($SenderID == $this->InstanceID) {
+            switch ($MessageID) {
+                case FM_CONNECT:
+                    $this->RegisterMessage($Data[0], IM_CHANGESTATUS);
+                    $this->ForceRegisterServerEvents();
+                    break;
+            }
+        }
+    }
+
+    public function ForceRegisterServerEvents()
+    {
+        $parent = IPS_GetInstance($this->InstanceID)['ConnectionID'];
+        if (IPS_InstanceExists($parent)) {
+            IPS_SetProperty($parent, 'Active', true);
+            IPS_ApplyChanges($parent);
+            $this->RegisterServerEvents();
+        }
     }
 
     public function RegisterServerEvents()
     {
-        $url = self::HOME_CONNECT_BASE . 'homeappliances/events';
-        $this->SendDebug('url', $url, 0);
-        $parent = IPS_GetInstance($this->InstanceID)['ConnectionID'];
-        if (!IPS_GetProperty($parent, 'Active')) {
-            echo $this->Translate('IO instance is not active');
-            return;
+        try {
+            $url = self::HOME_CONNECT_BASE . 'homeappliances/events';
+            $this->SendDebug('url', $url, 0);
+            $parent = IPS_GetInstance($this->InstanceID)['ConnectionID'];
+            if (!IPS_GetProperty($parent, 'Active')) {
+                echo $this->Translate('IO instance is not active');
+                return;
+            }
+            IPS_SetProperty($parent, 'URL', $url);
+            IPS_SetProperty($parent, 'Headers', json_encode([['Name' => 'Authorization', 'Value' => 'Bearer ' . $this->FetchAccessToken()]]));
+            IPS_ApplyChanges($parent);
+
+            // Mark connection as good for the moment
+            $this->SetBuffer('KeepAlive', time());
+
+            $this->SetTimerInterval('Reconnect', 0);
+        } catch (RuntimeException $e) {
+            $error = $this->DecodeModuleError($e);
+            $this->SendDebug('RegisterServerEventsError', json_encode($error), 0);
+            echo $error['error']['description'];
         }
-        IPS_SetProperty($parent, 'URL', $url);
-        IPS_SetProperty($parent, 'Headers', json_encode([['Name' => 'Authorization', 'Value' => 'Bearer ' . $this->FetchAccessToken()]]));
-        IPS_ApplyChanges($parent);
-
-        // Mark connection as good for the moment
-        $this->SetBuffer('KeepAlive', time());
-
-        $this->SetTimerInterval('Reconnect', 0);
     }
 
     public function CheckServerEvents()
@@ -154,9 +200,9 @@ class HomeConnectCloud extends WebOAuthModule
 
     public function ResetRateLimit()
     {
-        if ($this->GetStatus() != IS_ACTIVE) {
-            $this->WriteAttributeString('RateError', '');
-        }
+        $this->WriteAttributeString('RateError', '');
+        $this->WriteAttributeInteger('RateLimitUntil', 0);
+        $this->updateRateLimitNotice();
         $this->SetStatus(IS_ACTIVE);
         $this->SetTimerInterval('RateLimit', 0);
     }
@@ -164,11 +210,15 @@ class HomeConnectCloud extends WebOAuthModule
     public function GetConfigurationForm()
     {
         $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
-        $form['status'][] = [
-            'code'    => IS_EBASE,
-            'icon'    => 'error',
-            'caption' => $this->ReadAttributeString('RateError'),
-        ];
+        $rateError = $this->ReadAttributeString('RateError');
+        foreach ($form['elements'] as &$element) {
+            if (($element['name'] ?? '') !== 'RateLimitNotice') {
+                continue;
+            }
+            $element['caption'] = $rateError;
+            $element['visible'] = $rateError !== '';
+            break;
+        }
 
         return json_encode($form);
     }
@@ -185,12 +235,23 @@ class HomeConnectCloud extends WebOAuthModule
                 die('Authorization Code expected');
             }
 
+            // When the page gets reloaded we might use the code twice which results in our token being revoked by the server.
+            $lastCode = $this->GetBuffer('LastCode');
+            if ($lastCode == $_GET['code']) {
+                return;
+            } else {
+                $this->SetBuffer('LastCode', $_GET['code']);
+            }
+
             $token = $this->FetchRefreshToken($_GET['code']);
 
             $this->SendDebug('ProcessOAuthData', "OK! Let's save the Refresh Token permanently", 0);
 
             $this->WriteAttributeString('Token', $token);
             $this->UpdateFormField('Token', 'caption', 'Token: ' . substr($token, 0, 16) . '...');
+
+            $this->ForceRegisterServerEvents();
+
         } else {
 
             //Just print raw post data!
@@ -208,23 +269,19 @@ class HomeConnectCloud extends WebOAuthModule
     {
         $this->SendDebug('FetchRefreshToken', 'Use Authentication Code to get our precious Refresh Token!', 0);
 
-        //Exchange our Authentication Code for a permanent Refresh Token and a temporary Access Token
-        $options = [
-            'http' => [
-                'header'        => "Content-Type: application/x-www-form-urlencoded\r\n",
-                'method'        => 'POST',
-                'content'       => http_build_query(['code' => $code]),
-                'ignore_errors' => true
-            ]
-        ];
-        $context = stream_context_create($options);
-        $result = file_get_contents('https://' . $this->oauthServer . '/access_token/' . $this->oauthIdentifer, false, $context);
-
-        $data = json_decode($result);
-
-        if (!isset($data->token_type) || $data->token_type != 'Bearer') {
-            die('Bearer Token expected');
+        if (trim((string) $code) == '') {
+            $this->ThrowModuleError(
+                'Client.Error.AuthenticationRequired',
+                $this->Translate('Home Connect registration is incomplete. Please reconnect "Home Connect Cloud" using "Register".'),
+                'OAuth authorization failed: Authorization Code missing'
+            );
         }
+
+        //Exchange our Authentication Code for a permanent Refresh Token and a temporary Access Token
+        $data = $this->RequestOAuthToken(
+            ['code' => $code],
+            'authorization'
+        );
 
         //Save temporary access token
         $this->FetchAccessToken($data->access_token, time() + $data->expires_in);
@@ -251,23 +308,20 @@ class HomeConnectCloud extends WebOAuthModule
 
             $this->SendDebug('FetchAccessToken', 'Use Refresh Token to get new Access Token!', 0);
 
-            //If we slipped here we need to fetch the access token
-            $options = [
-                'http' => [
-                    'header'        => "Content-Type: application/x-www-form-urlencoded\r\n",
-                    'method'        => 'POST',
-                    'content'       => http_build_query(['refresh_token' => $this->ReadAttributeString('Token')]),
-                    'ignore_errors' => true
-                ]
-            ];
-            $context = stream_context_create($options);
-            $result = file_get_contents('https://' . $this->oauthServer . '/access_token/' . $this->oauthIdentifer, false, $context);
-
-            $data = json_decode($result);
-
-            if (!isset($data->token_type) || $data->token_type != 'Bearer') {
-                die('Bearer Token expected');
+            $refreshToken = trim($this->ReadAttributeString('Token'));
+            if ($refreshToken == '') {
+                $this->ThrowModuleError(
+                    'Client.Error.AuthenticationRequired',
+                    $this->Translate('Home Connect login is missing. Please connect "Home Connect Cloud" using "Register" and then register the server events again.'),
+                    'OAuth token refresh failed: Refresh Token missing'
+                );
             }
+
+            //If we slipped here we need to fetch the access token
+            $data = $this->RequestOAuthToken(
+                ['refresh_token' => $refreshToken],
+                'refresh'
+            );
 
             //Update parameters to properly cache it in the next step
             $Token = $data->access_token;
@@ -291,6 +345,125 @@ class HomeConnectCloud extends WebOAuthModule
         return $Token;
     }
 
+    private function RequestOAuthToken(array $payload, string $requestType)
+    {
+        $options = [
+            'http' => [
+                'header'        => "Content-Type: application/x-www-form-urlencoded\r\n",
+                'method'        => 'POST',
+                'content'       => http_build_query($payload),
+                'ignore_errors' => true
+            ]
+        ];
+        $context = stream_context_create($options);
+        $result = file_get_contents('https://' . $this->oauthServer . '/access_token/' . $this->oauthIdentifer, false, $context);
+        $responseHeader = isset($http_response_header) ? $http_response_header : [];
+        $responseCode = $this->GetHttpResponseCode($responseHeader);
+        $rawResult = is_string($result) ? $result : '';
+
+        $this->SendDebug('OAuth ' . $requestType . ' HTTP', json_encode($responseHeader), 0);
+        $this->SendDebug('OAuth ' . $requestType . ' Response', $rawResult, 0);
+
+        $data = json_decode($rawResult);
+
+        if (isset($data->token_type) && $data->token_type == 'Bearer' && isset($data->access_token)) {
+            return $data;
+        }
+
+        $oauthError = $this->BuildOAuthError($requestType, $responseCode, $data, $rawResult);
+        $this->ThrowModuleError($oauthError['key'], $oauthError['description'], $oauthError['debug']);
+    }
+
+    private function BuildOAuthError(string $requestType, int $responseCode, $data, string $rawResult): array
+    {
+        $context = $requestType == 'refresh' ? 'token refresh' : 'authorization';
+        $error = is_object($data) && isset($data->error) ? (string) $data->error : '';
+        $description = is_object($data) && isset($data->error_description) ? trim((string) $data->error_description) : '';
+
+        if ($error == 'invalid_grant') {
+            $reason = $description != '' ? $description : 'Refresh Token invalid or expired';
+            return [
+                'key'         => 'Client.Error.AuthenticationExpired',
+                'description' => $this->Translate('Home Connect login expired or was revoked. Please reconnect "Home Connect Cloud" using "Register" and then register the server events again.'),
+                'debug'       => 'OAuth ' . $context . ' failed: invalid_grant (' . $reason . ')'
+            ];
+        }
+
+        if ($responseCode >= 500 || $responseCode == 0) {
+            $reason = $description != '' ? $description : ($rawResult != '' ? trim($rawResult) : 'No HTTP response');
+            return [
+                'key'         => 'Client.Error.AuthenticationServer',
+                'description' => $this->Translate('Home Connect login could not be refreshed right now. Please try again later. If the problem persists, reconnect "Home Connect Cloud".'),
+                'debug'       => 'OAuth ' . $context . ' failed: server problem (HTTP ' . $responseCode . ', ' . $reason . ')'
+            ];
+        }
+
+        if ($error != '') {
+            $reason = $description != '' ? $description : 'No error description';
+            return [
+                'key'         => 'Client.Error.Authentication',
+                'description' => $this->Translate('Home Connect login failed. Please check "Home Connect Cloud" and reconnect if necessary.'),
+                'debug'       => 'OAuth ' . $context . ' failed: ' . $error . ' (' . $reason . ')'
+            ];
+        }
+
+        if ($responseCode >= 400) {
+            $reason = $rawResult != '' ? trim($rawResult) : 'Empty response body';
+            return [
+                'key'         => 'Client.Error.AuthenticationHttp',
+                'description' => $this->Translate('Home Connect login failed. Please reconnect "Home Connect Cloud".'),
+                'debug'       => 'OAuth ' . $context . ' failed: HTTP ' . $responseCode . ' (' . $reason . ')'
+            ];
+        }
+
+        return [
+            'key'         => 'Client.Error.AuthenticationUnexpected',
+            'description' => $this->Translate('Home Connect login returned an unexpected response. Please reconnect "Home Connect Cloud".'),
+            'debug'       => 'OAuth ' . $context . ' failed: unexpected token response'
+        ];
+    }
+
+    private function GetHttpResponseCode(array $responseHeader): int
+    {
+        if (count($responseHeader) == 0) {
+            return 0;
+        }
+
+        $parts = explode(' ', $responseHeader[0]);
+        if (!isset($parts[1])) {
+            return 0;
+        }
+
+        return intval($parts[1]);
+    }
+
+    private function ThrowModuleError(string $key, string $description, string $debug): void
+    {
+        throw new RuntimeException(json_encode([
+            'error' => [
+                'key'         => $key,
+                'description' => $description,
+                'debug'       => $debug
+            ]
+        ]));
+    }
+
+    private function DecodeModuleError(RuntimeException $e): array
+    {
+        $data = json_decode($e->getMessage(), true);
+        if (!is_array($data) || !isset($data['error'])) {
+            return [
+                'error' => [
+                    'key'         => 'Client.Error.Module',
+                    'description' => $this->Translate('Home Connect request failed.'),
+                    'debug'       => $e->getMessage()
+                ]
+            ];
+        }
+
+        return $data;
+    }
+
     private function FetchData($url)
     {
         $opts = [
@@ -312,16 +485,40 @@ class HomeConnectCloud extends WebOAuthModule
         return $result;
     }
 
-    private function getTimer($name)
+    private function isRateLimitActive(): bool
     {
-        foreach (IPS_GetTimerList() as $timerID) {
-            $timer = IPS_GetTimer($timerID);
-            if (($timer['InstanceID'] == $this->InstanceID) && ($timer['Name'] == $name)) {
-                return $timer;
-                break;
+        return $this->ReadAttributeInteger('RateLimitUntil') > time();
+    }
+
+    private function updateRateLimitNotice(): void
+    {
+        $rateError = $this->ReadAttributeString('RateError');
+        $this->UpdateFormField('RateLimitNotice', 'caption', $rateError);
+        $this->UpdateFormField('RateLimitNotice', 'visible', $rateError !== '');
+    }
+
+    private function parseResponseHeaders(array $responseHeader): array
+    {
+        $head = [];
+        foreach ($responseHeader as $header) {
+            $values = explode(':', $header, 2);
+            if (isset($values[1])) {
+                $head[strtolower(trim($values[0]))] = trim($values[1]);
             }
         }
-        return false;
+
+        return $head;
+    }
+
+    private function getRateLimitDelay(array $responseHeader): int
+    {
+        $head = $this->parseResponseHeaders($responseHeader);
+
+        if (isset($head['retry-after']) && is_numeric($head['retry-after'])) {
+            return max(1, (int) $head['retry-after']);
+        }
+
+        return 60;
     }
 
     private function handleHttpErrors($code, $responseHeader)
@@ -329,33 +526,27 @@ class HomeConnectCloud extends WebOAuthModule
         switch ($code) {
             //Too Many Requests
             case 429:
-                $head = [];
-                foreach ($responseHeader as $header) {
-                    $values = explode(':', $header, 2);
-                    if (isset($values[1])) {
-                        $head[trim($values[0])] = trim($values[1]);
-                    }
-                }
-                $this->SetTimerInterval('RateLimit', $head['Retry-After'] * 1000);
-                $timer = $this->getTimer('RateLimit');
-                //Fallback to current time
-                $nextRun = $timer === false ? time() : $timer['NextRun'];
+                $head = $this->parseResponseHeaders($responseHeader);
+                $retryAfter = $this->getRateLimitDelay($responseHeader);
+                $nextRun = time() + $retryAfter;
+                $this->WriteAttributeInteger('RateLimitUntil', $nextRun);
+                $this->SetTimerInterval('RateLimit', $retryAfter * 1000);
 
                 $this->WriteAttributeString(
                     'RateError',
-                    isset($head['Rate-Limit-Type']) ?
+                    isset($head['rate-limit-type']) ?
                     sprintf(
                         $this->Translate(
                             'The rate limit of %s was reached. Requests are blocked until %s.'
                         ),
-                        $head['Rate-Limit-Type'] == 'day' ?
+                        $head['rate-limit-type'] == 'day' ?
                         $this->Translate('1000 calls in 1 day') : $this->Translate('50 calls in 1 minute'),
                         date('d.m.Y H:i:s', $nextRun),
                     ) : sprintf($this->Translate('A rate limit was reached. Requests are blocked until %s.'), date('d.m.Y H:i:s', $nextRun))
                 );
-                if ($this->GetStatus() != IS_EBASE) {
-                    $this->SetStatus(IS_EBASE);
-                    IPS_ApplyChanges($this->InstanceID);
+                $this->updateRateLimitNotice();
+                if ($this->HasActiveParent() && $this->GetStatus() != IS_ACTIVE) {
+                    $this->SetStatus(IS_ACTIVE);
                 }
                 return;
 
@@ -376,6 +567,10 @@ class HomeConnectCloud extends WebOAuthModule
 
         $result = file_get_contents(self::HOME_CONNECT_BASE . $endpoint, false, $context);
         $code = explode(' ', $http_response_header[0])[1];
+        $this->SendDebug('HTTP GET', $endpoint . ' -> ' . $code, 0);
+        if ($code != 200) {
+            $this->SendDebug('HTTP GET Response', $result, 0);
+        }
         if ($code == 200) {
             $this->ResetRateLimit();
         } else {
@@ -402,6 +597,10 @@ class HomeConnectCloud extends WebOAuthModule
         $result = file_get_contents(self::HOME_CONNECT_BASE . $endpoint, false, $context);
 
         $code = explode(' ', $http_response_header[0])[1];
+        $this->SendDebug('HTTP PUT', $endpoint . ' -> ' . $code, 0);
+        if ($code != 200 && $code != 201 && $code != 204) {
+            $this->SendDebug('HTTP PUT Response', $result, 0);
+        }
         if ($code == 204) {
             $this->ResetRateLimit();
         } else {
@@ -430,6 +629,10 @@ class HomeConnectCloud extends WebOAuthModule
 
         $result = file_get_contents(self::HOME_CONNECT_BASE . $endpoint, false, $context);
         $code = explode(' ', $http_response_header[0])[1];
+        $this->SendDebug('HTTP DELETE', $endpoint . ' -> ' . $code, 0);
+        if ($code != 200 && $code != 204) {
+            $this->SendDebug('HTTP DELETE Response', $result, 0);
+        }
 
         if ($code == 204) {
             $this->ResetRateLimit();

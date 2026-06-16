@@ -4,9 +4,9 @@ declare(strict_types=1);
 class HomeConnectConfigurator extends IPSModule
 {
     public const MODULE_TYPES =
-    [
-        'Default' => '{F29DF312-A62E-9989-1F1A-0D1E1D171AD3}'
-    ];
+        [
+            'Default' => '{F29DF312-A62E-9989-1F1A-0D1E1D171AD3}'
+        ];
 
     public function Create()
     {
@@ -25,6 +25,11 @@ class HomeConnectConfigurator extends IPSModule
     {
         //Never delete this line!
         parent::ApplyChanges();
+    }
+
+    public function ForwardData($JSONString)
+    {
+        return $this->SendDataToParent($JSONString);
     }
 
     public function GetConfigurationForm()
@@ -70,8 +75,7 @@ class HomeConnectConfigurator extends IPSModule
                     'items' => [
                         [
                             'type'    => 'Label',
-                            'caption' => $this->Translate('An error occurred during the request to Home Connect:') .
-                            PHP_EOL . $errorDescription
+                            'caption' => $this->Translate('An error occurred during the request to Home Connect:') . PHP_EOL . $errorDescription
                         ]
                     ]
                 ]

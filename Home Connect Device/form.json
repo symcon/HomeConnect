@@ -12,6 +12,9 @@
             "type": "Button",
             "caption": "Initialize Device",
             "onClick": "HC_InitializeDevice($id);"
+        },
+        {
+            "type": "TestCenter"
         }
     ],
     "status": []

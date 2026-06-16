@@ -4,10 +4,19 @@
             "Register": "Registrieren",
             "Language": "Sprache",
             "Register Server Events": "Server Events registrieren",
+            "Home Connect registration is incomplete. Please reconnect \"Home Connect Cloud\" using \"Register\".": "Die Home-Connect-Anmeldung ist unvollständig. Bitte verbinde \"Home Connect Cloud\" ücber \"Registrieren\" erneut.",
+            "Home Connect login is missing. Please connect \"Home Connect Cloud\" using \"Register\" and then register the server events again.": "Die Home-Connect-Anmeldung fehlt. Bitte verbinde \"Home Connect Cloud\" über \"Registrieren\" und registriere danach die Server-Events erneut.",
+            "Home Connect login expired or was revoked. Please reconnect \"Home Connect Cloud\" using \"Register\" and then register the server events again.": "Die Home-Connect-Anmeldung ist abgelaufen oder wurde widerrufen. Bitte verbinde \"Home Connect Cloud\" über \"Registrieren\" neu und registriere danach die Server-Events erneut.",
+            "Home Connect login could not be refreshed right now. Please try again later. If the problem persists, reconnect \"Home Connect Cloud\".": "Die Home-Connect-Anmeldung konnte gerade nicht aktualisiert werden. Bitte versuche es später erneut. Wenn das Problem bleibt, verbinde \"Home Connect Cloud\" neu.",
+            "Home Connect login failed. Please check \"Home Connect Cloud\" and reconnect if necessary.": "Die Home-Connect-Anmeldung ist fehlgeschlagen. Bitte prüfe \"Home Connect Cloud\" und verbinde es gegebenenfalls erneut.",
+            "Home Connect login failed. Please reconnect \"Home Connect Cloud\".": "Die Home-Connect-Anmeldung ist fehlgeschlagen. Bitte verbinde \"Home Connect Cloud\" erneut.",
+            "Home Connect login returned an unexpected response. Please reconnect \"Home Connect Cloud\".": "Die Home-Connect-Anmeldung lieferte eine unerwartete Antwort. Bitte verbinde \"Home Connect Cloud\" erneut.",
+            "Home Connect request failed.": "Die Home-Connect-Anfrage ist fehlgeschlagen.",
             "The rate limit of %s was reached. Requests are blocked until %s.": "Das Anfragenlimit von %s wurde erreicht. Weitere Anfragen werden bis %s blockiert.",
             "1000 calls in 1 day": "1000 Anfragen pro Tag",
             "50 calls in 1 minute": "50 Anfragen pro Minute",
             "A rate limit was reached. Requests are blocked until %s.": "Ein Anfragenlimit wurde erreicht. Weitere Anfragen werden bis %s blockiert",
+            "Home Connect requests are currently rate limited.": "Home-Connect-Anfragen sind aktuell limitiert.",
             "https://www.symcon.de/en/service/documentation/module-reference/home-connect/": "https://www.symcon.de/de/service/dokumentation/modulreferenz/home-connect"
         }
     }
