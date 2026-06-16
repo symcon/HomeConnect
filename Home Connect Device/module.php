@@ -129,8 +129,9 @@ class HomeConnectDevice extends IPSModule
             case 'DISCONNECTED':
                 if (@IPS_GetObjectIDByIdent('OperationState', $this->InstanceID)) {
                     // Offline device set OperationState to Inactive
-                    $this->SetValue('OperationState','BSH.Common.EnumType.OperationState.Inactive');
+                    $this->SetValue('OperationState', 'BSH.Common.EnumType.OperationState.Inactive');
                 }
+                break;
             case 'CONNECTED':
                 // Device comes online, request states
                 $this->createStates();
