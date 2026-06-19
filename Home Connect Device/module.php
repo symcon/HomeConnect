@@ -385,6 +385,9 @@ class HomeConnectDevice extends IPSModule
 
     public function InitializeDevice()
     {
+        // Write signature before API calls to prevent retry loops when initialization fails
+        // (e.g. device offline or rate limit hit mid-way through setupSettings)
+        $this->WriteAttributeString('InitializationSignature', $this->getInitializationSignature());
         if ($this->createStates()) {
             $this->setupSettings();
             if ($this->createPrograms()) {
@@ -397,7 +400,6 @@ class HomeConnectDevice extends IPSModule
             $this->createEventProfile();
             $this->MaintainVariable('Event', $this->Translate('Event'), VARIABLETYPE_STRING, 'HomeConnect.Event.' . $this->ReadPropertyString('DeviceType'), 0, true);
             $this->MaintainVariable('EventDescription', $this->Translate('Event Description'), VARIABLETYPE_STRING, '', 0, true);
-            $this->WriteAttributeString('InitializationSignature', $this->getInitializationSignature());
         }
     }
 
