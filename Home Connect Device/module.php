@@ -71,6 +71,7 @@ class HomeConnectDevice extends IPSModule
         $this->RegisterAttributeString('Settings', '[]');
         $this->RegisterAttributeString('OptionKeys', '[]');
         $this->RegisterAttributeString('InitializationSignature', '');
+        $this->RegisterAttributeBoolean('Initialized', false);
 
         //Common States
         //States
@@ -385,14 +386,11 @@ class HomeConnectDevice extends IPSModule
 
     public function InitializeDevice()
     {
-        // Write signature before API calls to prevent retry loops when initialization fails
-        // (e.g. device offline or rate limit hit mid-way through setupSettings)
-        $this->WriteAttributeString('InitializationSignature', $this->getInitializationSignature());
+        $this->WriteAttributeBoolean('Initialized', false);
         if ($this->createStates()) {
             $this->setupSettings();
             if ($this->createPrograms()) {
                 $this->ensureControlVariable(2);
-                //If the device is inactive, we cannot retrieve information about the current selected Program
                 if (@IPS_GetObjectIDByIdent('OperationState', $this->InstanceID) && ($this->GetValue('OperationState') == 'BSH.Common.EnumType.OperationState.Ready')) {
                     $this->updateOptionValues($this->getSelectedProgram());
                 }
@@ -400,6 +398,8 @@ class HomeConnectDevice extends IPSModule
             $this->createEventProfile();
             $this->MaintainVariable('Event', $this->Translate('Event'), VARIABLETYPE_STRING, 'HomeConnect.Event.' . $this->ReadPropertyString('DeviceType'), 0, true);
             $this->MaintainVariable('EventDescription', $this->Translate('Event Description'), VARIABLETYPE_STRING, '', 0, true);
+            $this->WriteAttributeString('InitializationSignature', $this->getInitializationSignature());
+            $this->WriteAttributeBoolean('Initialized', true);
         }
     }
 
@@ -439,6 +439,7 @@ class HomeConnectDevice extends IPSModule
                 case 'SDK.Error.UnsupportedOperation':
                 case 'SDK.Error.NoProgramSelected':
                 case 'SDK.Error.HomeAppliance.Connection.Initialization.Failed':
+                case '429':
                     return $response;
 
                 default:
@@ -474,7 +475,7 @@ class HomeConnectDevice extends IPSModule
             return false;
         }
 
-        if (!@IPS_GetObjectIDByIdent('OperationState', $this->InstanceID)) {
+        if (!$this->ReadAttributeBoolean('Initialized')) {
             return true;
         }
 
