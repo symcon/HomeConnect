@@ -157,7 +157,7 @@ class HomeConnectDevice extends IPSModule
                     return;
 
                 case FM_DISCONNECT:
-                    $this->SetStatus(IS_INACTIVE);
+                    $this->setInstanceStatus(IS_INACTIVE);
                     return;
             }
         }
@@ -461,11 +461,20 @@ class HomeConnectDevice extends IPSModule
             if ($initializeDevice) {
                 $this->InitializeDevice();
             }
-            if ($this->GetStatus()!=IS_ACTIVE) $this->SetStatus(IS_ACTIVE);
+            $this->setInstanceStatus(IS_ACTIVE);
             return;
         }
 
-        $this->SetStatus(IS_INACTIVE);
+        $this->setInstanceStatus(IS_INACTIVE);
+    }
+
+    private function setInstanceStatus(int $status): void
+    {
+        // Only update the status when it actually changes, so monitoring
+        // (e.g. EventControl scripts) is not triggered on every refresh.
+        if ($this->GetStatus() !== $status) {
+            $this->SetStatus($status);
+        }
     }
 
     private function needsInitialization(): bool
