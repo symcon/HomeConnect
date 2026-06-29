@@ -1,0 +1,6 @@
+{
+    "error": {
+        "description": "Operation not supported for HomeAppliance type FridgeFreezer",
+        "key": "SDK.Error.UnsupportedOperation"
+    }
+}

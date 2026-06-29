@@ -7,8 +7,12 @@ if (defined('PHPUNIT_TESTSUITE')) {
     {
         public $selectedProgram = '';
 
+        //Counts API GET requests so tests can assert that no retry loop burns the rate limit.
+        public static $requestCount = 0;
+
         public function getRequest(string $endpoint)
         {
+            self::$requestCount++;
             preg_match('/homeappliances\/.+\/programs\/selected/', $endpoint, $matches);
             if ($matches) {
                 return file_get_contents(__DIR__ . '/../tests/' . $endpoint . '/' . $this->selectedProgram . '.json');
