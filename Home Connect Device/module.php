@@ -461,7 +461,7 @@ class HomeConnectDevice extends IPSModule
             if ($initializeDevice) {
                 $this->InitializeDevice();
             }
-            $this->SetStatus(IS_ACTIVE);
+            if ($this->GetStatus()!=IS_ACTIVE) $this->SetStatus(IS_ACTIVE);
             return;
         }
 
