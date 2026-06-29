@@ -1,0 +1,17 @@
+{
+    "data": {
+        "settings": [
+            {
+                "key": "Refrigeration.FridgeFreezer.Setting.SetpointTemperatureRefrigerator",
+                "value": 4,
+                "unit": "°C",
+                "name": "Kühlraumtemperatur"
+            },
+            {
+                "key": "Refrigeration.FridgeFreezer.Setting.SuperModeRefrigerator",
+                "value": false,
+                "name": "Super-Modus Kühlraum"
+            }
+        ]
+    }
+}

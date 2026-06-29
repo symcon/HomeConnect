@@ -102,8 +102,16 @@ class HomeConnectCloud extends WebOAuthModule
     public function ReceiveData($JSONString)
     {
         $this->SendDebug('Receive', $JSONString, 0);
+
+        // A 429 can also arrive through the event stream itself (the /events
+        // request is rejected). Feed it into the same rate-limit machinery so the
+        // reconnect logic backs off instead of hammering /events every 60s.
+        if ($this->applyRateLimitFromStream($JSONString)) {
+            return;
+        }
+
         $data = json_decode($JSONString, true);
-        switch ($data['Event']) {
+        switch ($data['Event'] ?? '') {
             case 'KEEP-ALIVE': {
                 $this->SendDebug('KeepAlive', 'OK', 0);
                 $this->SetBuffer('KeepAlive', time());
@@ -112,6 +120,31 @@ class HomeConnectCloud extends WebOAuthModule
         }
         $data['DataID'] = '{173D59E5-F949-1C1B-9B34-671217C07B0E}';
         $this->SendDataToChildren(json_encode($data));
+    }
+
+    /**
+     * Detects a 429 rate-limit response carried by the SSE stream and activates
+     * the rate limit. Envelope-agnostic: matches on the raw payload because the
+     * IO wraps the body in different ways. Returns true if a 429 was handled.
+     */
+    private function applyRateLimitFromStream(string $JSONString): bool
+    {
+        if (!preg_match('/"key"\s*:\s*"429"/', $JSONString)) {
+            return false;
+        }
+
+        $retryAfter = preg_match('/remaining period of (\d+) seconds/', $JSONString, $m) ? (int) $m[1] : 60;
+
+        $type = null;
+        if (strpos($JSONString, 'in 1 day') !== false) {
+            $type = 'day';
+        } elseif (strpos($JSONString, 'in 1 minute') !== false) {
+            $type = 'minute';
+        }
+
+        $this->SendDebug('ReceiveRateLimit', sprintf('429 from event stream, blocking for %ds', $retryAfter), 0);
+        $this->applyRateLimit($retryAfter, $type);
+        return true;
     }
 
     public function MessageSink($Timestamp, $SenderID, $MessageID, $Data)
@@ -154,6 +187,15 @@ class HomeConnectCloud extends WebOAuthModule
 
     public function RegisterServerEvents()
     {
+        // Do not (re)connect the event stream while we are rate limited - every
+        // reconnect hits /events and counts against the daily quota. Defer the
+        // reconnect to the moment the limit expires instead.
+        if ($this->isRateLimitActive()) {
+            $remaining = $this->ReadAttributeInteger('RateLimitUntil') - time();
+            $this->SendDebug('RegisterServerEvents', sprintf('Rate limit active, defer reconnect by %ds', $remaining), 0);
+            $this->SetTimerInterval('Reconnect', max(1, $remaining) * 1000);
+            return;
+        }
         try {
             $url = self::HOME_CONNECT_BASE . 'homeappliances/events';
             $this->SendDebug('url', $url, 0);
@@ -179,6 +221,10 @@ class HomeConnectCloud extends WebOAuthModule
 
     public function CheckServerEvents()
     {
+        // While rate limited the missing keep-alive is expected - do not reconnect.
+        if ($this->isRateLimitActive()) {
+            return;
+        }
         if ($this->HasActiveParent()) {
             if (time() - intval($this->GetBuffer('KeepAlive')) > 60 /* Seconds */) {
                 $this->SendDebug('KeepAlive', 'Failed. Reregistering...', 0);
@@ -205,6 +251,10 @@ class HomeConnectCloud extends WebOAuthModule
         $this->updateRateLimitNotice();
         $this->SetStatus(IS_ACTIVE);
         $this->SetTimerInterval('RateLimit', 0);
+
+        // Limit is over - resume the event stream exactly once.
+        $this->SetTimerInterval('Reconnect', 0);
+        $this->RegisterServerEvents();
     }
 
     public function GetConfigurationForm()
@@ -527,29 +577,38 @@ class HomeConnectCloud extends WebOAuthModule
             //Too Many Requests
             case 429:
                 $head = $this->parseResponseHeaders($responseHeader);
-                $retryAfter = $this->getRateLimitDelay($responseHeader);
-                $nextRun = time() + $retryAfter;
-                $this->WriteAttributeInteger('RateLimitUntil', $nextRun);
-                $this->SetTimerInterval('RateLimit', $retryAfter * 1000);
-
-                $this->WriteAttributeString(
-                    'RateError',
-                    isset($head['rate-limit-type']) ?
-                    sprintf(
-                        $this->Translate(
-                            'The rate limit of %s was reached. Requests are blocked until %s.'
-                        ),
-                        $head['rate-limit-type'] == 'day' ?
-                        $this->Translate('1000 calls in 1 day') : $this->Translate('50 calls in 1 minute'),
-                        date('d.m.Y H:i:s', $nextRun),
-                    ) : sprintf($this->Translate('A rate limit was reached. Requests are blocked until %s.'), date('d.m.Y H:i:s', $nextRun))
-                );
-                $this->updateRateLimitNotice();
-                if ($this->HasActiveParent() && $this->GetStatus() != IS_ACTIVE) {
-                    $this->SetStatus(IS_ACTIVE);
-                }
+                $this->applyRateLimit($this->getRateLimitDelay($responseHeader), $head['rate-limit-type'] ?? null);
                 return;
 
+        }
+    }
+
+    /**
+     * Activates the rate-limit state shared by the REST and the SSE path:
+     * remembers the block end, schedules the reset timer and updates the notice.
+     */
+    private function applyRateLimit(int $retryAfter, ?string $type): void
+    {
+        $retryAfter = max(1, $retryAfter);
+        $nextRun = time() + $retryAfter;
+        $this->WriteAttributeInteger('RateLimitUntil', $nextRun);
+        $this->SetTimerInterval('RateLimit', $retryAfter * 1000);
+
+        $this->WriteAttributeString(
+            'RateError',
+            $type !== null ?
+            sprintf(
+                $this->Translate(
+                    'The rate limit of %s was reached. Requests are blocked until %s.'
+                ),
+                $type == 'day' ?
+                $this->Translate('1000 calls in 1 day') : $this->Translate('50 calls in 1 minute'),
+                date('d.m.Y H:i:s', $nextRun),
+            ) : sprintf($this->Translate('A rate limit was reached. Requests are blocked until %s.'), date('d.m.Y H:i:s', $nextRun))
+        );
+        $this->updateRateLimitNotice();
+        if ($this->HasActiveParent() && $this->GetStatus() != IS_ACTIVE) {
+            $this->SetStatus(IS_ACTIVE);
         }
     }
 

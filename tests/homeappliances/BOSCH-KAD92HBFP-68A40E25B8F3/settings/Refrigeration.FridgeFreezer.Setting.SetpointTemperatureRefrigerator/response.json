@@ -1,0 +1,15 @@
+{
+    "data": {
+        "key": "Refrigeration.FridgeFreezer.Setting.SetpointTemperatureRefrigerator",
+        "name": "Kühlraumtemperatur",
+        "unit": "°C",
+        "type": "Int",
+        "value": 4,
+        "constraints": {
+            "min": 2,
+            "max": 8,
+            "stepsize": 1,
+            "access": "readWrite"
+        }
+    }
+}
