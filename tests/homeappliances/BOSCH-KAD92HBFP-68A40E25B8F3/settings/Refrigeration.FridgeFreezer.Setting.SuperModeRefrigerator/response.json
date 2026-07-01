@@ -1,0 +1,11 @@
+{
+    "data": {
+        "key": "Refrigeration.FridgeFreezer.Setting.SuperModeRefrigerator",
+        "name": "Super-Modus Kühlraum",
+        "type": "Boolean",
+        "value": false,
+        "constraints": {
+            "access": "readWrite"
+        }
+    }
+}
