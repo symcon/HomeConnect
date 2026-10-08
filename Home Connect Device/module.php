@@ -78,6 +78,7 @@ class HomeConnectDevice extends IPSModule
         'ConsumerProducts.CoffeeMaker.Event.DeviceCalcNCleanOverdue'      => 'Device calc n clean overdue',
         'ConsumerProducts.CoffeeMaker.Event.DeviceCalcNCleanBlockage'     => 'Device blocked because of calc n clean overdue',
         'Dishcare.Dishwasher.Event.RinseAidNearlyEmpty'                   => 'Please fill RinseAid tank',
+        'Dishcare.Dishwasher.Event.SaltNearlyEmpty'                       => 'Please fill salt',
         'LaundryCare.Dryer.Event.DryingProcessFinished'                   => 'Drying Process Finished',
         'Refrigeration.FridgeFreezer.Event.DoorAlarmFreezer'              => 'Please close door',
         'Refrigeration.FridgeFreezer.Event.DoorAlarmRefrigerator'         => 'Please close door',
@@ -136,6 +137,9 @@ class HomeConnectDevice extends IPSModule
         $this->RegisterAttributeString('OptionKeys', '[]');
         $this->RegisterAttributeString('InitializationSignature', '');
         $this->RegisterAttributeBoolean('Initialized', false);
+
+        // Retries an initialization the refresh throttle had to skip.
+        $this->RegisterTimer('RetryRefresh', 0, 'IPS_RequestAction($_IPS[\'TARGET\'], "RetryRefreshDeviceState", "");');
 
         //Common States
         //States
@@ -242,12 +246,14 @@ class HomeConnectDevice extends IPSModule
         $data = json_decode($String, true);
         switch ($data['Event']) {
             case 'DISCONNECTED':
+                $this->setConnected(false);
                 if (@IPS_GetObjectIDByIdent('OperationState', $this->InstanceID)) {
                     // Offline device set OperationState to Inactive
                     $this->SetValue('OperationState', 'BSH.Common.EnumType.OperationState.Inactive');
                 }
                 break;
             case 'CONNECTED':
+                $this->setConnected(true);
                 // Device comes online -> refresh states. Decouple from the event thread:
                 // refreshDeviceState performs synchronous cloud calls, and doing them
                 // inline blocks ReceiveData while the parent is busy (e.g. reconnecting the
@@ -298,6 +304,13 @@ class HomeConnectDevice extends IPSModule
                                     $ident = 'Option' . $ident;
                                 }
                                 if (@IPS_GetObjectIDByIdent($ident, $this->InstanceID)) {
+                                    if (strpos($ident, 'Option') === 0) {
+                                        $this->ensureOptionAssociation($ident, $item['value']);
+                                    } elseif ($ident == 'SelectedProgram' && is_string($item['value']) && $item['value'] != '') {
+                                        // Programs chosen at the appliance are reported here
+                                        // although programs does not list them.
+                                        $this->ensureProgramAssociation($item['value']);
+                                    }
                                     $this->SetValue($ident, $item['value']);
                                 } elseif (strpos($ident, 'Option') === 0) {
                                     // The variable may be created only moments later by
@@ -316,6 +329,7 @@ class HomeConnectDevice extends IPSModule
                 $eventData = json_decode($data['Data'], true);
                 foreach ($eventData['items'] as $item) {
                     if ($item['value'] == 'BSH.Common.EnumType.EventPresentState.Present') {
+                        $this->ensureEventAssociation($item['key']);
                         $this->SetValue('Event', $item['key']);
                         $level = $this->Translate($item['level']);
                         $event = GetValueFormattedEx($this->GetIDForIdent('Event'), $item['key']);
@@ -357,6 +371,12 @@ class HomeConnectDevice extends IPSModule
                 // Internal action, triggered by the one-shot timer armed on a CONNECTED
                 // event. Runs the (cloud-heavy) state refresh off the event thread.
                 $this->refreshDeviceState($this->needsInitialization(), 'Event:CONNECTED (deferred)');
+                return;
+
+            case 'RetryRefreshDeviceState':
+                // Internal action, triggered by the RetryRefresh timer: repeats an
+                // initialization the refresh throttle had to skip.
+                $this->refreshDeviceState($this->needsInitialization(), 'RetryRefresh');
                 return;
 
             case 'RefreshActiveProgramOptions':
@@ -565,19 +585,36 @@ class HomeConnectDevice extends IPSModule
         return $response;
     }
 
+    // Time source for the module timers of the test stubs (as in WebOAuthModule).
+    protected function getTime(): int
+    {
+        return time();
+    }
+
     private function refreshDeviceState(bool $initializeDevice, string $trigger = ''): void
     {
         // DEBUG (rate-limit analysis): record every refresh, its trigger and the chosen path.
         $this->SendDebug(__FUNCTION__, sprintf('trigger: %s, mode: %s, activeParent: %s', $trigger, $initializeDevice ? 'init' : 'valueRefresh', $this->HasActiveParent() ? 'yes' : 'no'), 0);
         if ($this->HasActiveParent() && $this->ReadPropertyString('HaID')) {
             $this->SetSummary($this->ReadPropertyString('HaID'));
-            if ($this->refreshThrottled()) {
+            $wait = $this->refreshThrottled();
+            if ($wait > 0) {
                 // Too soon since the last refresh - skip the server round-trips but
                 // keep the instance active. Live STATUS/NOTIFY events still update
-                // values directly (they do not go through this path).
+                // values directly (they do not go through this path). A skipped
+                // initialization has no such substitute: retry it after the window.
+                // A throttled value refresh leaves a pending retry alone.
                 $this->SendDebug(__FUNCTION__, sprintf('throttled (trigger: %s)', $trigger), 0);
+                if ($initializeDevice || $this->needsInitialization()) {
+                    $this->SetTimerInterval('RetryRefresh', $wait * 1000);
+                }
                 $this->setInstanceStatus(IS_ACTIVE);
                 return;
+            }
+            // This refresh runs now and supersedes a pending retry - unless it is a value
+            // refresh and the initialization is still due.
+            if ($initializeDevice || !$this->needsInitialization()) {
+                $this->SetTimerInterval('RetryRefresh', 0);
             }
             if ($initializeDevice) {
                 $this->InitializeDevice();
@@ -597,16 +634,18 @@ class HomeConnectDevice extends IPSModule
      * Rate-limit guard shared by the init and the value-refresh path: allows at most
      * one full server refresh per REFRESH_MIN_INTERVAL seconds. The timestamp lives in
      * a runtime buffer, so it resets on restart (a restart should refresh immediately).
+     * Returns the seconds to wait, 0 if the refresh may run (and records it).
      */
-    private function refreshThrottled(): bool
+    private function refreshThrottled(): int
     {
         $now = time();
         $last = (int) $this->GetBuffer('LastRefresh');
         if ($last !== 0 && ($now - $last) < self::REFRESH_MIN_INTERVAL) {
-            return true;
+            // Seconds until the next refresh is allowed.
+            return self::REFRESH_MIN_INTERVAL - ($now - $last);
         }
         $this->SetBuffer('LastRefresh', (string) $now);
-        return false;
+        return 0;
     }
 
     /**
@@ -661,6 +700,17 @@ class HomeConnectDevice extends IPSModule
         }
     }
 
+    /**
+     * "Connected" mirrors the connection state Home Connect reports for the appliance.
+     * OperationState Inactive cannot tell this apart: a switched-off but connected
+     * appliance reports Inactive as well.
+     */
+    private function setConnected(bool $connected): void
+    {
+        $this->MaintainVariable('Connected', $this->Translate('Connected'), VARIABLETYPE_BOOLEAN, 'HomeConnect.YesNo', 0, true);
+        $this->SetValue('Connected', $connected);
+    }
+
     private function needsInitialization(): bool
     {
         if ($this->ReadPropertyString('HaID') == '') {
@@ -711,6 +761,12 @@ class HomeConnectDevice extends IPSModule
         $ident = 'SelectedProgram';
         $this->MaintainVariable($ident, $this->Translate('Program'), VARIABLETYPE_STRING, $profileName, 1, true);
         $this->EnableAction($ident);
+        // The rebuild keeps only the listed programs. A program chosen at the appliance
+        // and still selected would show its raw key until the next event.
+        $selectedProgram = $this->GetValue($ident);
+        if (is_string($selectedProgram) && $selectedProgram != '') {
+            $this->ensureProgramAssociation($selectedProgram);
+        }
         return true;
     }
 
@@ -921,6 +977,7 @@ class HomeConnectDevice extends IPSModule
             $this->syncUseDurationVariable(false, 0);
             return;
         }
+        $this->ensureProgramAssociation($program['key']);
         $this->SetValue('SelectedProgram', $program['key']);
         $this->updateOptionVariables($program);
         $optionKeys = [];
@@ -941,6 +998,7 @@ class HomeConnectDevice extends IPSModule
                 }
                 $debugValue = is_bool($value) ? ($value ? 'true' : 'false') : $value;
                 $this->SendDebug(__FUNCTION__, sprintf('Ident: %s, Value: %s', $ident, $debugValue), 0);
+                $this->ensureOptionAssociation($ident, $value);
                 $this->SetValue($ident, $value);
             }
         }
@@ -1015,7 +1073,7 @@ class HomeConnectDevice extends IPSModule
             // The snippet fallback would show the bare number ("003").
             $displayName = sprintf($this->Translate('Favorite %d'), (int) $matches['number']);
         } else {
-            $displayName = $this->getLastSnippet($key);
+            $displayName = $this->getReadableName($key);
         }
         IPS_SetVariableProfileAssociation($profileName, $key, $displayName, '', -1);
         return $profileName;
@@ -1066,9 +1124,49 @@ class HomeConnectDevice extends IPSModule
         }
         foreach ($pending as $ident => $value) {
             if (@IPS_GetObjectIDByIdent($ident, $this->InstanceID)) {
+                $this->ensureOptionAssociation($ident, $value);
                 $this->SetValue($ident, $value);
             }
         }
+    }
+
+    /**
+     * Makes sure a string option value has an association in the variable's profile, so
+     * it never shows the raw key. Values can arrive via event before any program listing
+     * them was loaded (forum t/124612 #554). Program keys (e.g. a favorite's BaseProgram)
+     * reuse the name from the Programs profile, anything else gets the last key snippet.
+     */
+    private function ensureOptionAssociation($ident, $value)
+    {
+        if (!is_string($value) || $value == '') {
+            return;
+        }
+        $variable = IPS_GetVariable($this->GetIDForIdent($ident));
+        $profileName = $variable['VariableProfile'];
+        if ($profileName == '' || !IPS_VariableProfileExists($profileName)) {
+            return;
+        }
+        $profile = IPS_GetVariableProfile($profileName);
+        if ($profile['ProfileType'] != VARIABLETYPE_STRING) {
+            return;
+        }
+        foreach ($profile['Associations'] as $association) {
+            if ($association['Value'] === $value) {
+                return;
+            }
+        }
+        $displayName = $this->getLastSnippet($value);
+        $programsProfile = 'HomeConnect.' . $this->ReadPropertyString('DeviceType') . '.Programs';
+        if (IPS_VariableProfileExists($programsProfile)) {
+            foreach (IPS_GetVariableProfile($programsProfile)['Associations'] as $association) {
+                if ($association['Value'] === $value) {
+                    $displayName = $association['Name'];
+                    break;
+                }
+            }
+        }
+        $this->SendDebug(__FUNCTION__, sprintf('Added %s => %s to %s', $value, $displayName, $profileName), 0);
+        IPS_SetVariableProfileAssociation($profileName, $value, $displayName, '', -1);
     }
 
     /**
@@ -1134,8 +1232,14 @@ class HomeConnectDevice extends IPSModule
         if (!$states) {
             $data = json_decode($this->RequestDataFromParent('homeappliances/' . $this->ReadPropertyString('HaID') . '/status'), true);
             if (isset($data['error'])) {
+                // Home Connect answers /status of an offline appliance with this error.
+                // Other errors (e.g. 429) say nothing about the connection.
+                if (($data['error']['key'] ?? '') === 'SDK.Error.HomeAppliance.Connection.Initialization.Failed') {
+                    $this->setConnected(false);
+                }
                 return false;
             }
+            $this->setConnected(true);
         } else {
             $data = $states;
         }
@@ -1218,6 +1322,16 @@ class HomeConnectDevice extends IPSModule
     private function getLastSnippet($string)
     {
         return substr($string, strrpos($string, '.') + 1, strlen($string) - strrpos($string, '.'));
+    }
+
+    /**
+     * Readable name built from the last key snippet for keys without a known name
+     * (SaltNearlyEmpty -> "Salt Nearly Empty", Eco50 -> "Eco 50"). Digits form a word of
+     * their own; a capital right after a digit belongs to it (HotAir3D -> "Hot Air 3D").
+     */
+    private function getReadableName(string $key): string
+    {
+        return trim(preg_replace('/(?<=[a-z])(?=[A-Z0-9])|(?<=[0-9])(?=[A-Z][a-z])/', ' ', $this->getLastSnippet($key)));
     }
 
     private function createAssociations($profileName, $associations)
@@ -1319,18 +1433,30 @@ class HomeConnectDevice extends IPSModule
                     IPS_CreateVariableProfile($profileName, $variableType);
                 }
                 $existingProfileType = IPS_GetVariableProfile($profileName)['ProfileType'];
-                if ($existingProfileType === VARIABLETYPE_INTEGER || $existingProfileType === VARIABLETYPE_FLOAT) {
+                if ($existingProfileType === VARIABLETYPE_INTEGER && $variableType === VARIABLETYPE_FLOAT) {
+                    // An integer profile would cut the float values (4.5 °C -> 4). Give them a
+                    // float profile of their own, as createStates does, and leave the existing
+                    // profile alone. The other direction is lossless and follows the profile.
+                    $this->SendDebug(__FUNCTION__, sprintf('Profile %s exists as integer; using %s.f for the float values', $profileName, $profileName), 0);
+                    $profileName .= '.f';
+                    if (!IPS_VariableProfileExists($profileName)) {
+                        IPS_CreateVariableProfile($profileName, VARIABLETYPE_FLOAT);
+                    }
+                    $existingProfileType = IPS_GetVariableProfile($profileName)['ProfileType'];
+                }
+                if ($existingProfileType === $variableType) {
                     IPS_SetVariableProfileText($profileName, '', isset($data['unit']) ? ' ' . $data['unit'] : '');
                     $min = isset($constraints['min']) ? $constraints['min'] : 0;
                     $max = isset($constraints['max']) ? $constraints['max'] : 86340;
                     IPS_SetVariableProfileValues($profileName, $min, $max, isset($constraints['stepsize']) ? $constraints['stepsize'] : 1);
                     $this->SendDebug('UpdatedProfile', $min . ' - ' . $max, 0);
                 } else {
-                    // A profile with this name already exists with an incompatible
-                    // (non-numeric) type. Modifying its values would emit "String
-                    // profiles cannot be modified". Keep the existing profile and match
-                    // the variable to it instead of fighting the type.
-                    $this->SendDebug(__FUNCTION__, sprintf('Profile %s already exists as type %d; skipping numeric setup', $profileName, $existingProfileType), 0);
+                    // A profile with this name already exists with another type - non-numeric
+                    // (modifying its values would emit "String profiles cannot be modified")
+                    // or the other numeric type (Symcon rejects a variable whose type does
+                    // not match its profile). Keep the existing profile and match the
+                    // variable to it instead of fighting the type.
+                    $this->SendDebug(__FUNCTION__, sprintf('Profile %s already exists as type %d; skipping profile setup', $profileName, $existingProfileType), 0);
                     $variableType = $existingProfileType;
                 }
                 break;
@@ -1499,52 +1625,86 @@ class HomeConnectDevice extends IPSModule
             $this->SendDebug('Profile', 'HomeConnect.Event.' . $deviceType, 0);
             if (!IPS_VariableProfileExists('HomeConnect.Event.' . $deviceType)) {
                 IPS_CreateVariableProfile('HomeConnect.Event.' . $deviceType, VARIABLETYPE_STRING);
-                $associations = [];
-                if (in_array($deviceType, ['Dishwasher', 'CleaningRobot', 'CookProcessor'])) {
-                    $associations[] = ['Value' => 'BSH.Common.Event.ProgramAborted', 'Name' => 'Program Aborted'];
-                }
-                if (in_array($deviceType, ['Dishwasher'])) {
-                    $associations[] = ['Value' => 'Dishcare.Dishwasher.Event.RinseAidNearlyEmpty', 'Name' => 'Please fill RinseAid tank'];
-                }
-                if (in_array($deviceType, ['Oven', 'Dishwasher', 'Washer', 'Dryer', 'WasherDryer', 'Cooktop', 'Hood', 'CleaningRobot', 'CookProcessor'])) {
-                    $associations[] = ['Value' => 'BSH.Common.Event.ProgramFinished', 'Name' => 'Program Finished'];
-                }
-                if (in_array($deviceType, ['Oven',  'Cooktop'])) {
-                    $associations[] = ['Value' => 'BSH.Common.Event.AlarmClockElapsed', 'Name' => 'Alarm Clock Elapsed'];
-                    $associations[] = ['Value' => 'BSH.Common.Event.PreheatFinished', 'Name' => 'Pre-heat Finished'];
-                }
-                if (in_array($deviceType, ['Hob'])) {
-                    $associations[] = ['Value' => 'BSH.Common.Event.ProgramFinished', 'Name' => 'Program Finished'];
-                    $associations[] = ['Value' => 'BSH.Common.Event.AlarmClockElapsed', 'Name' => 'Alarm Clock Elapsed'];
-                }
-                if (in_array($deviceType, ['CoffeeMaker'])) {
-                    $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.BeanContainerEmpty', 'Name' => 'Bean Container Empty'];
-                    $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.WaterTankEmpty', 'Name' => 'Water Tank Empty'];
-                    $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DripTrayFull', 'Name' => 'Drip Tray Full'];
-                    $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DeviceShouldBeDescaled', 'Name' => 'Please descale device'];
-                    $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DeviceDescalingOverdue', 'Name' => 'Descaling overdue'];
-                    $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DeviceDescalingBlockage', 'Name' => 'Device blocked because of descaling overdue'];
-                    $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DeviceShouldBeCleaned', 'Name' => 'Please clean device'];
-                    $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DeviceCleaningOverdue', 'Name' => 'Cleaning overdue'];
-                    $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DeviceShouldBeCalcNCleaned', 'Name' => 'Please calc n clean device'];
-                    $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DeviceCalcNCleanOverdue', 'Name' => 'Device calc n clean overdue'];
-                    $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DeviceCalcNCleanBlockage', 'Name' => 'Device blocked because of calc n clean overdue'];
-                }
-                if (in_array($deviceType, ['FridgeFreezer', 'Freezer'])) {
-                    $associations[] = ['Value' => 'Refrigeration.FridgeFreezer.Event.DoorAlarmFreezer', 'Name' => 'Door Alarm Freezer'];
-                    $associations[] = ['Value' => 'Refrigeration.FridgeFreezer.Event.TemperatureAlarmFreezer', 'Name' => 'Temperature Alarm Freezer'];
-                }
-                if (in_array($deviceType, ['FridgeFreezer', 'Refrigerator'])) {
-                    $associations[] = ['Value' => 'Refrigeration.FridgeFreezer.Event.DoorAlarmRefrigerator', 'Name' => 'Door Alarm Refrigerator'];
-                }
-                if (in_array($deviceType, ['CleaningRobot'])) {
-                    $associations[] = ['Value' => 'ConsumerProducts.CleaningRobot.Event.EmptyDustBoxAndCleanFilter', 'Name' => 'Empty Dust Box and Clean Filter'];
-                    $associations[] = ['Value' => 'ConsumerProducts.CleaningRobot.Event.RobotIsStuck', 'Name' => 'Robot is Stuck'];
-                    $associations[] = ['Value' => 'ConsumerProducts.CleaningRobot.Event.DockingStationNotFound', 'Name' => 'Docking Station not Found'];
-                }
-                $this->createAssociations('HomeConnect.Event.' . $deviceType, $associations);
+                $this->createAssociations('HomeConnect.Event.' . $deviceType, $this->getEventAssociations($deviceType));
             }
         }
+    }
+
+    /**
+     * The profile is created only once, so events added in later builds (or not known at
+     * all) would show "N/A" on existing installations. Adds a missing association when the
+     * event arrives: known events get their translated name, unknown ones a readable name
+     * built from the key (SaltNearlyEmpty -> "Salt Nearly Empty").
+     */
+    private function ensureEventAssociation(string $key): void
+    {
+        $profileName = IPS_GetVariable($this->GetIDForIdent('Event'))['VariableProfile'];
+        if ($profileName == '' || !IPS_VariableProfileExists($profileName)) {
+            return;
+        }
+        foreach (IPS_GetVariableProfile($profileName)['Associations'] as $association) {
+            if ($association['Value'] === $key) {
+                return;
+            }
+        }
+        $displayName = $this->getReadableName($key);
+        foreach ($this->getEventAssociations($this->ReadPropertyString('DeviceType')) as $association) {
+            if ($association['Value'] === $key) {
+                $displayName = $this->Translate($association['Name']);
+                break;
+            }
+        }
+        $this->SendDebug(__FUNCTION__, sprintf('Added %s => %s to %s', $key, $displayName, $profileName), 0);
+        IPS_SetVariableProfileAssociation($profileName, $key, $displayName, '', -1);
+    }
+
+    private function getEventAssociations(string $deviceType): array
+    {
+        $associations = [];
+        if (in_array($deviceType, ['Dishwasher', 'CleaningRobot', 'CookProcessor'])) {
+            $associations[] = ['Value' => 'BSH.Common.Event.ProgramAborted', 'Name' => 'Program Aborted'];
+        }
+        if (in_array($deviceType, ['Dishwasher'])) {
+            $associations[] = ['Value' => 'Dishcare.Dishwasher.Event.RinseAidNearlyEmpty', 'Name' => 'Please fill RinseAid tank'];
+            $associations[] = ['Value' => 'Dishcare.Dishwasher.Event.SaltNearlyEmpty', 'Name' => 'Please fill salt'];
+        }
+        if (in_array($deviceType, ['Oven', 'Dishwasher', 'Washer', 'Dryer', 'WasherDryer', 'Cooktop', 'Hood', 'CleaningRobot', 'CookProcessor'])) {
+            $associations[] = ['Value' => 'BSH.Common.Event.ProgramFinished', 'Name' => 'Program Finished'];
+        }
+        if (in_array($deviceType, ['Oven',  'Cooktop'])) {
+            $associations[] = ['Value' => 'BSH.Common.Event.AlarmClockElapsed', 'Name' => 'Alarm Clock Elapsed'];
+            $associations[] = ['Value' => 'BSH.Common.Event.PreheatFinished', 'Name' => 'Pre-heat Finished'];
+        }
+        if (in_array($deviceType, ['Hob'])) {
+            $associations[] = ['Value' => 'BSH.Common.Event.ProgramFinished', 'Name' => 'Program Finished'];
+            $associations[] = ['Value' => 'BSH.Common.Event.AlarmClockElapsed', 'Name' => 'Alarm Clock Elapsed'];
+        }
+        if (in_array($deviceType, ['CoffeeMaker'])) {
+            $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.BeanContainerEmpty', 'Name' => 'Bean Container Empty'];
+            $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.WaterTankEmpty', 'Name' => 'Water Tank Empty'];
+            $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DripTrayFull', 'Name' => 'Drip Tray Full'];
+            $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DeviceShouldBeDescaled', 'Name' => 'Please descale device'];
+            $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DeviceDescalingOverdue', 'Name' => 'Descaling overdue'];
+            $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DeviceDescalingBlockage', 'Name' => 'Device blocked because of descaling overdue'];
+            $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DeviceShouldBeCleaned', 'Name' => 'Please clean device'];
+            $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DeviceCleaningOverdue', 'Name' => 'Cleaning overdue'];
+            $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DeviceShouldBeCalcNCleaned', 'Name' => 'Please calc n clean device'];
+            $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DeviceCalcNCleanOverdue', 'Name' => 'Device calc n clean overdue'];
+            $associations[] = ['Value' => 'ConsumerProducts.CoffeeMaker.Event.DeviceCalcNCleanBlockage', 'Name' => 'Device blocked because of calc n clean overdue'];
+        }
+        if (in_array($deviceType, ['FridgeFreezer', 'Freezer'])) {
+            $associations[] = ['Value' => 'Refrigeration.FridgeFreezer.Event.DoorAlarmFreezer', 'Name' => 'Door Alarm Freezer'];
+            $associations[] = ['Value' => 'Refrigeration.FridgeFreezer.Event.TemperatureAlarmFreezer', 'Name' => 'Temperature Alarm Freezer'];
+        }
+        if (in_array($deviceType, ['FridgeFreezer', 'Refrigerator'])) {
+            $associations[] = ['Value' => 'Refrigeration.FridgeFreezer.Event.DoorAlarmRefrigerator', 'Name' => 'Door Alarm Refrigerator'];
+        }
+        if (in_array($deviceType, ['CleaningRobot'])) {
+            $associations[] = ['Value' => 'ConsumerProducts.CleaningRobot.Event.EmptyDustBoxAndCleanFilter', 'Name' => 'Empty Dust Box and Clean Filter'];
+            $associations[] = ['Value' => 'ConsumerProducts.CleaningRobot.Event.RobotIsStuck', 'Name' => 'Robot is Stuck'];
+            $associations[] = ['Value' => 'ConsumerProducts.CleaningRobot.Event.DockingStationNotFound', 'Name' => 'Docking Station not Found'];
+        }
+        return $associations;
     }
 
     private function executeApplicanceCommand($command)
